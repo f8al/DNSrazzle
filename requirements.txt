@@ -13,3 +13,4 @@ matplotlib
 scikit-image
 opencv-python-headless
 numpy
+certifi>=2020.06.20
