@@ -11,6 +11,8 @@ from webdriver_manager.chrome import ChromeDriverManager
 from contrib.dnsrecon.tools.parser import print_error, print_status
 from contrib.dnstwist import *
 import nmap
+import numpy as np
+
 
 
 
@@ -51,6 +53,18 @@ __author__ = 'securityshrimp @securityshrimp'
 |       | | |   |_____| |   |  | |   _   | |_____| |_____|       |   |___ 
 |______||_|  |__|_______|___|  |_|__| |__|_______|_______|_______|_______|
 '''
+
+def compare_screenshots(imageA, imageB):
+    # the 'Mean Squared Error' between the two images is the
+    # sum of the squared difference between the two images;
+    # NOTE: the two images must have the same dimension
+    err = np.sum((imageA.astype("float") - imageB.astype("float")) ** 2)
+    err /= float(imageA.shape[0] * imageA.shape[1])
+
+    # return the MSE, the lower the error, the more "similar"
+    # the two images are
+    return err
+
 
 def portscan(domain, out_dir):
     print_status("Running nmap on "+ domain )
@@ -159,13 +173,14 @@ def main():
     domain = arguments.domain
     out_dir = arguments.out_dir
     file = arguments.file
+    cwd = os.getcwd()
 
 
     if domain is None:
         print_status('No Domain to target specified!')
         sys.exit(1)
 
-    elif domain is not None:
+    elif domain is not None and out_dir is None:
         try:
             domain = []
             domain_raw_list = list(set(arguments.domain.split(",")))
@@ -174,13 +189,36 @@ def main():
                 if check_domain(entry):
                     continue
                 else:
+                    print_status(f"Saving records to output folder {out_dir}")
                     check_domain(arguments.domain)
                     screenshot_domain(entry,out_dir)
                     portscan(arguments.domain, arguments.out_dir)
+                    compare_screenshots(cwd + 'screenshots/originals' + domain + '.png',
+                                        cwd + '/screenshots/baxterhealthcarecompany.com.png')
+        except dns.resolver.NXDOMAIN:
+            print_error(f"Could not resolve domain: {domain}")
+            sys.exit(1)
 
-             # if an output xml file is specified it will write returned results.
-            if out_dir is not None:
-                print_status(f"Saving records to output folder {out_dir}")
+        except dns.exception.Timeout:
+            print_error("A timeout error occurred please make sure you can reach the target DNS Servers")
+            print_error("directly and requests are not being filtered. Increase the timeout")
+            print_error("to a higher number with --lifetime <time> option.")
+
+    elif domain is not None and out_dir is not None:
+        try:
+            domain = []
+            domain_raw_list = list(set(arguments.domain.split(",")))
+            for entry in domain_raw_list:
+                print_status(f"Performing General Enumeration of Domain: {entry}")
+                if check_domain(entry):
+                    continue
+                else:
+                    print_status(f"Saving records to output folder {out_dir}")
+                    check_domain(arguments.domain)
+                    screenshot_domain(entry,out_dir)
+                    portscan(arguments.domain, arguments.out_dir)
+                    compare_screenshots(out_dir + 'screenshots/originals' + domain + '.png',
+                                        out_dir + '/screenshots/baxterhealthcarecompany.com.png')
 
 
 
