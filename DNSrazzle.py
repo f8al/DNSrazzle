@@ -12,6 +12,7 @@ from contrib.dnsrecon.tools.parser import print_error, print_status
 from contrib.dnstwist import *
 import nmap
 import numpy as np
+import cv2
 
 
 
@@ -58,7 +59,12 @@ def compare_screenshots(imageA, imageB):
     # the 'Mean Squared Error' between the two images is the
     # sum of the squared difference between the two images;
     # NOTE: the two images must have the same dimension
-    err = np.sum((imageA.astype("float") - imageB.astype("float")) ** 2)
+    imageA_Int = cv2.imread(imageA)
+    imageB_Int = cv2.imread(imageB)
+    # convert the images to grayscale
+    grayA = cv2.cvtColor(imageA_Int, cv2.COLOR_BGR2GRAY)
+    grayB = cv2.cvtColor(imageB_Int, cv2.COLOR_BGR2GRAY)
+    err = np.sum((grayA.astype("float") - grayB.astype("float")) ** 2)
     err /= float(imageA.shape[0] * imageA.shape[1])
 
     # return the MSE, the lower the error, the more "similar"
