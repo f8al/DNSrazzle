@@ -52,13 +52,21 @@ __author__ = 'securityshrimp @securityshrimp'
 |______||_|  |__|_______|___|  |_|__| |__|_______|_______|_______|_______|
 '''
 
-def portscan(domain):
+def portscan(domain, out_dir):
+    print_status("Running nmap on "+ domain )
     nm = nmap.PortScanner()
-    nm.scan(domain,'21,22,25,80,443,587,993,8000,8080')
-    
+    if not os.path.isfile(out_dir+'/nmap/'):
+        create_folders(out_dir)
+    nm.scan(hosts=domain, arguments='-A -T4 -sV -oG ' + out_dir + '/nmap/' + domain + '.txt')
+    hosts_list = [(x, nm[x]['status']['state']) for x in nm.all_hosts()]
+    print(nm.csv())
+
 
 
 def check_domain(domain):
+    '''
+    primary method for performing domain checks
+    '''
     print_status("Checking domain " + domain + "!")
 
 
@@ -75,9 +83,9 @@ def screenshot_domain(domain,out_dir):
     """
     function to take screenshot of supplied domain
     """
+    cwd = os.getcwd()
     options = webdriver.ChromeOptions()
     options.headless = True
-    options.add_experimental_option('excludeSwitches', ['disable-logging'])
     driver = webdriver.Chrome(ChromeDriverManager().install(),options=options)
     url = "http://" + str(domain).strip('[]')
     driver.get(url)
@@ -85,7 +93,7 @@ def screenshot_domain(domain,out_dir):
     if out_dir is not None:
         ss_path = str(out_dir + '/screenshots/' + domain + '.png')
     else:
-        ss_path = str(pathlib.Path().absolute()) + '/screenshots/'+ domain + '.png'
+        ss_path = str(cwd) + '/screenshots/'+ domain + '.png'
 
     S = lambda X: driver.execute_script('return document.body.parentNode.scroll' + X)
     driver.set_window_size(S('Width'), S(
@@ -98,18 +106,20 @@ def create_folders(out_dir):
     '''
     function to create output folders at location specified with -o
     '''
+    cwd = os.getcwd()
     if out_dir is not None:
-        os.mkdir(out_dir + '/screenshots/')
-        os.mkdir(out_dir + '/screenshots/original/')
-        os.mkdir(out_dir + '/dnsrecon/')
-        os.mkdir(out_dir + '/dnstwist/')
-        os.mkdir(out_dir + '/nmap/')
+        os.makedirs(out_dir + '/screenshots/', exist_ok=True)
+        os.makedirs(out_dir + '/screenshots/original/', exist_ok=True)
+        os.makedirs(out_dir + '/dnsrecon/', exist_ok=True)
+        os.makedirs(out_dir + '/dnstwist/', exist_ok=True)
+        os.makedirs(out_dir + '/nmap/', exist_ok=True)
     else:
-        os.mkdir('/screenshots/')
-        os.mkdir('/screenshots/original/')
-        os.mkdir('/dnsrecon/')
-        os.mkdir('/dnstwist/')
-        os.mkdir('/nmap/')
+        os.makedirs(cwd + '/screenshots/', exist_ok=True)
+        os.makedirs(cwd + '/screenshots/original/', exist_ok=True)
+        os.makedirs(cwd + '/dnsrecon/', exist_ok=True)
+        os.makedirs(cwd + '/dnstwist/', exist_ok=True)
+        os.makedirs(cwd + '/nmap/', exist_ok=True)
+
 
 def main():
     #
@@ -166,6 +176,7 @@ def main():
                 else:
                     check_domain(arguments.domain)
                     screenshot_domain(entry,out_dir)
+                    portscan(arguments.domain, arguments.out_dir)
 
              # if an output xml file is specified it will write returned results.
             if out_dir is not None:
