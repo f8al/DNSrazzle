@@ -10,7 +10,7 @@ from selenium.webdriver.chrome.options import Options
 from webdriver_manager.chrome import ChromeDriverManager
 from contrib.dnsrecon.tools.parser import print_error, print_status
 from contrib.dnstwist import *
-
+import nmap
 
 
 
@@ -52,6 +52,10 @@ __author__ = 'securityshrimp @securityshrimp'
 |______||_|  |__|_______|___|  |_|__| |__|_______|_______|_______|_______|
 '''
 
+def portscan(domain):
+    nm = nmap.PortScanner()
+    nm.scan(domain,'21,22,25,80,443,587,993,8000,8080')
+    
 
 
 def check_domain(domain):
