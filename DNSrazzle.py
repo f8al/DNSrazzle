@@ -13,6 +13,7 @@ from contrib.dnsrecon import *
 import nmap
 import imutils
 import cv2
+import math
 
 
 # -*- coding: utf-8 -*-
@@ -58,7 +59,15 @@ def compare_screenshots(imageA, imageB):
     # images, ensuring that the difference image is returned
     (score, diff) = compare_ssim(grayA, grayB, full=True)
     diff = (diff * 255).astype("uint8")
-    print("SSIM: {}".format(score))
+    #print("SSIM: {}".format(score))
+    if round(score, 2) == 1.00 :
+        print_status(imageA + " Is identical to " + imageB +" with a score of " + str(round(score,2)) + "!")
+    elif round(score, 2) > .90 :
+        print_status(imageA + " Is similar to " + imageB + " with a score of " + str(round(score,2)) + "!")
+    elif round(score, 2) < .90 :
+        print_status(imageA + " Is different from" + imageB + " with a score of " + str(round(score,2)) + "!")
+
+    """
     # threshold the difference image, followed by finding contours to
     # obtain the regions of the two input images that differ
     thresh = cv2.threshold(diff, 0, 255,
@@ -80,7 +89,7 @@ def compare_screenshots(imageA, imageB):
     cv2.imshow("Diff", diff)
     cv2.imshow("Thresh", thresh)
     #cv2.waitKey(0)
-
+    """
 
 def portscan(domain, out_dir):
     print_status("Running nmap on "+ domain )
@@ -233,7 +242,7 @@ def main():
                     print_status(f"Saving records to output folder {out_dir}")
                     check_domain(arguments.domain)
                     screenshot_domain(entry,out_dir)
-                    #portscan(arguments.domain, arguments.out_dir)
+                    portscan(arguments.domain, arguments.out_dir)
                     compare_screenshots(out_dir + '/screenshots/originals/' + arguments.domain + '.png',
                                         out_dir + '/screenshots/baxterhealthcarecompany.com.png')
 
