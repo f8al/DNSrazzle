@@ -3,18 +3,16 @@ import sys
 import argparse
 import os
 import dns.resolver
-import pathlib
-import string
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from webdriver_manager.chrome import ChromeDriverManager
 from contrib.dnsrecon.tools.parser import print_error, print_status
+from skimage.measure import compare_ssim
 from contrib.dnstwist import *
+from contrib.dnsrecon import *
 import nmap
-import numpy as np
-
-
-
+import imutils
+import cv2
 
 
 # -*- coding: utf-8 -*-
@@ -35,14 +33,8 @@ import numpy as np
 #    You should have received a copy of the GNU General Public License
 #    along with this program; if not, write to the Free Software
 #    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
-
-
-__version__ = '0.0.1'
+__version__ = '0.0.2'
 __author__ = 'securityshrimp @securityshrimp'
-
-
-
-
 
 '''
  ______  __    _ _______ ______   _______ _______ _______ ___     _______ 
@@ -55,15 +47,39 @@ __author__ = 'securityshrimp @securityshrimp'
 '''
 
 def compare_screenshots(imageA, imageB):
-    # the 'Mean Squared Error' between the two images is the
-    # sum of the squared difference between the two images;
-    # NOTE: the two images must have the same dimension
-    err = np.sum((imageA.astype("float") - imageB.astype("float")) ** 2)
-    err /= float(imageA.shape[0] * imageA.shape[1])
-
-    # return the MSE, the lower the error, the more "similar"
-    # the two images are
-    return err
+    print_status("Comparing screenshot " + imageA + " with " + imageB + ".")
+    # load the two input images
+    image_A = cv2.imread(imageA)
+    image_B = cv2.imread(imageB)
+    # convert the images to grayscale
+    grayA = cv2.cvtColor(image_A, cv2.COLOR_BGR2GRAY)
+    grayB = cv2.cvtColor(image_B, cv2.COLOR_BGR2GRAY)
+    # compute the Structural Similarity Index (SSIM) between the two
+    # images, ensuring that the difference image is returned
+    (score, diff) = compare_ssim(grayA, grayB, full=True)
+    diff = (diff * 255).astype("uint8")
+    print("SSIM: {}".format(score))
+    # threshold the difference image, followed by finding contours to
+    # obtain the regions of the two input images that differ
+    thresh = cv2.threshold(diff, 0, 255,
+                           cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU)[1]
+    cnts = cv2.findContours(thresh.copy(), cv2.RETR_EXTERNAL,
+                            cv2.CHAIN_APPROX_SIMPLE)
+    cnts = imutils.grab_contours(cnts)
+    # loop over the contours
+    for c in cnts:
+        # compute the bounding box of the contour and then draw the
+        # bounding box on both input images to represent where the two
+        # images differ
+        (x, y, w, h) = cv2.boundingRect(c)
+        cv2.rectangle(image_A, (x, y), (x + w, y + h), (0, 0, 255), 2)
+        cv2.rectangle(image_B, (x, y), (x + w, y + h), (0, 0, 255), 2)
+    # show the output images
+    cv2.imshow("Original", image_A)
+    cv2.imshow("Modified", image_B)
+    cv2.imshow("Diff", diff)
+    cv2.imshow("Thresh", thresh)
+    #cv2.waitKey(0)
 
 
 def portscan(domain, out_dir):
@@ -93,6 +109,8 @@ def write_to_file(data, target_file):
     f.write(data)
     f.close()
 
+
+
 def screenshot_domain(domain,out_dir):
     """
     function to take screenshot of supplied domain
@@ -110,9 +128,8 @@ def screenshot_domain(domain,out_dir):
         ss_path = str(cwd) + '/screenshots/'+ domain + '.png'
 
     S = lambda X: driver.execute_script('return document.body.parentNode.scroll' + X)
-    driver.set_window_size(S('Width'), S(
-        'Height'))  # May need manual adjustment
-    driver.find_element_by_tag_name('body').screenshot(ss_path)
+    driver.set_window_size(1920,1080)  # May need manual adjustment
+    driver.get_screenshot_as_file(ss_path)
     driver.quit()
     print_status('Screenshot for ' + domain + ' saved to ' + ss_path)
 
@@ -123,13 +140,13 @@ def create_folders(out_dir):
     cwd = os.getcwd()
     if out_dir is not None:
         os.makedirs(out_dir + '/screenshots/', exist_ok=True)
-        os.makedirs(out_dir + '/screenshots/original/', exist_ok=True)
+        os.makedirs(out_dir + '/screenshots/originals/', exist_ok=True)
         os.makedirs(out_dir + '/dnsrecon/', exist_ok=True)
         os.makedirs(out_dir + '/dnstwist/', exist_ok=True)
         os.makedirs(out_dir + '/nmap/', exist_ok=True)
     else:
         os.makedirs(cwd + '/screenshots/', exist_ok=True)
-        os.makedirs(cwd + '/screenshots/original/', exist_ok=True)
+        os.makedirs(cwd + '/screenshots/originals/', exist_ok=True)
         os.makedirs(cwd + '/dnsrecon/', exist_ok=True)
         os.makedirs(cwd + '/dnstwist/', exist_ok=True)
         os.makedirs(cwd + '/nmap/', exist_ok=True)
@@ -191,9 +208,9 @@ def main():
                 else:
                     print_status(f"Saving records to output folder {out_dir}")
                     check_domain(arguments.domain)
-                    screenshot_domain(entry,out_dir)
-                    portscan(arguments.domain, arguments.out_dir)
-                    compare_screenshots(cwd + 'screenshots/originals' + domain + '.png',
+                    screenshot_domain(entry,cwd+'/screenshots/originals/')
+                    portscan(arguments.domain, cwd+'/nmap/')
+                    compare_screenshots(cwd + '/screenshots/originals/' + arguments.domain + '.png',
                                         cwd + '/screenshots/baxterhealthcarecompany.com.png')
         except dns.resolver.NXDOMAIN:
             print_error(f"Could not resolve domain: {domain}")
@@ -216,8 +233,8 @@ def main():
                     print_status(f"Saving records to output folder {out_dir}")
                     check_domain(arguments.domain)
                     screenshot_domain(entry,out_dir)
-                    portscan(arguments.domain, arguments.out_dir)
-                    compare_screenshots(out_dir + 'screenshots/originals' + domain + '.png',
+                    #portscan(arguments.domain, arguments.out_dir)
+                    compare_screenshots(out_dir + '/screenshots/originals/' + arguments.domain + '.png',
                                         out_dir + '/screenshots/baxterhealthcarecompany.com.png')
 
 
