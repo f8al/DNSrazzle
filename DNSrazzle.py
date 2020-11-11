@@ -3,6 +3,7 @@ import sys
 import argparse
 import os
 import dns.resolver
+import pathlib
 import string
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -51,7 +52,8 @@ __author__ = 'securityshrimp @securityshrimp'
 
 
 
-
+def check_domain(domain):
+    print_status("Checking domain " + domain + "!")
 
 def write_to_file(data, target_file):
     """
@@ -61,27 +63,30 @@ def write_to_file(data, target_file):
     f.write(data)
     f.close()
 
-def screenshot_domain(domain,out_directory):
+def screenshot_domain(domain,out_dir):
     """
     function to take screenshot of supplied domain
-    :param domain:
-    :return:
     """
-
     options = webdriver.ChromeOptions()
     options.headless = True
     driver = webdriver.Chrome(ChromeDriverManager().install(),options=options)
 
-    url = "http://" + domain
 
+
+
+    url = "http://" + str(domain).strip('[]')
+
+    print(url)
     driver.get(url)
+    ss_path = str(pathlib.Path().absolute()) + '/screenshots/'+ domain + '.png'
+    print(ss_path)
 
     S = lambda X: driver.execute_script('return document.body.parentNode.scroll' + X)
     driver.set_window_size(S('Width'), S(
         'Height'))  # May need manual adjustment
-    driver.find_element_by_tag_name('body').screenshot(os.path.realpath + 'screenshots/'+ domain + '.png')
+    driver.find_element_by_tag_name('body').screenshot(ss_path)
     driver.quit()
-    
+
 
 
 def main():
@@ -91,7 +96,7 @@ def main():
 
     domain = None
     file = None
-    output_file = None
+    out_dir = None
 
     print(
         " ______  __    _ _______ ______   _______ _______ _______ ___     _______\n",
@@ -110,10 +115,7 @@ def main():
                             required=True)
         parser.add_argument("-f", "--file", type=str, dest="file",
                             help="Provide a file containing a list of domains to run DNSrazzle on.")
-        parser.add_argument("-o", "--out-directory", type=str, dest="out_directory", help="Directory to output reports to.")
-
-
-        CHROMEDRIVER_PATH = os.path.realpath(__file__) + "/contrib/bin/" + string(arch) + "_chromedriver"
+        parser.add_argument("-o", "--out-directory", type=str, dest="out_dir", help="Directory to output reports to.")
 
 
 
@@ -122,14 +124,18 @@ def main():
     except SystemExit:
         # Handle exit() from passing --help
         raise
-    except Exception:
-        print_error("Wrong Option Provided!")
-        parser.print_help()
-        sys.exit(1)
+    #except Exception:
+    #    print(Exception)
+    #    print_error("Wrong Option Provided!")
+    #    parser.print_help()
+    #    sys.exit(1)
     #
     # Parse options
     #
     domain = arguments.domain
+    out_dir = arguments.out_dir
+    file = arguments.file
+
 
     if domain is None:
         print_status('No Domain to target specified!')
@@ -137,7 +143,6 @@ def main():
 
     elif domain is not None:
         try:
-
             domain = []
             domain_raw_list = list(set(arguments.domain.split(",")))
             for entry in domain_raw_list:
@@ -145,12 +150,13 @@ def main():
                 if check_domain(entry):
                     continue
                 else:
-                    check_domain(arguments.domain)
-                    screenshot_domain(arguments.domain, arguments.arch)
+                    #check_domain(arguments.domain)
+                    screenshot_domain(entry,out_dir)
 
              # if an output xml file is specified it will write returned results.
-            if out_directory is not None:
-                print_status(f"Saving records to output folder {out_directory}")
+            if out_dir is not None:
+                print_status(f"Saving records to output folder {out_dir}")
+
 
 
             if arguments.file is not None:
