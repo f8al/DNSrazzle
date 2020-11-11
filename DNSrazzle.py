@@ -9,6 +9,8 @@ from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from webdriver_manager.chrome import ChromeDriverManager
 from contrib.dnsrecon.tools.parser import print_error, print_status
+from contrib.dnstwist import *
+
 
 
 
@@ -55,6 +57,8 @@ __author__ = 'securityshrimp @securityshrimp'
 def check_domain(domain):
     print_status("Checking domain " + domain + "!")
 
+
+
 def write_to_file(data, target_file):
     """
     Function for writing returned data to a file
@@ -69,31 +73,45 @@ def screenshot_domain(domain,out_dir):
     """
     options = webdriver.ChromeOptions()
     options.headless = True
+    options.add_experimental_option('excludeSwitches', ['disable-logging'])
     driver = webdriver.Chrome(ChromeDriverManager().install(),options=options)
-
-
-
-
     url = "http://" + str(domain).strip('[]')
-
-    print(url)
     driver.get(url)
-    ss_path = str(pathlib.Path().absolute()) + '/screenshots/'+ domain + '.png'
-    print(ss_path)
+
+    if out_dir is not None:
+        ss_path = str(out_dir + '/screenshots/' + domain + '.png')
+    else:
+        ss_path = str(pathlib.Path().absolute()) + '/screenshots/'+ domain + '.png'
 
     S = lambda X: driver.execute_script('return document.body.parentNode.scroll' + X)
     driver.set_window_size(S('Width'), S(
         'Height'))  # May need manual adjustment
     driver.find_element_by_tag_name('body').screenshot(ss_path)
     driver.quit()
+    print_status('Screenshot for ' + domain + ' saved to ' + ss_path)
 
-
+def create_folders(out_dir):
+    '''
+    function to create output folders at location specified with -o
+    '''
+    if out_dir is not None:
+        os.mkdir(out_dir + '/screenshots/')
+        os.mkdir(out_dir + '/screenshots/original/')
+        os.mkdir(out_dir + '/dnsrecon/')
+        os.mkdir(out_dir + '/dnstwist/')
+        os.mkdir(out_dir + '/nmap/')
+    else:
+        os.mkdir('/screenshots/')
+        os.mkdir('/screenshots/original/')
+        os.mkdir('/dnsrecon/')
+        os.mkdir('/dnstwist/')
+        os.mkdir('/nmap/')
 
 def main():
     #
     # Option Variables
     #
-
+    os.environ['WDM_LOG_LEVEL'] = '0'
     domain = None
     file = None
     out_dir = None
@@ -115,23 +133,15 @@ def main():
                             required=True)
         parser.add_argument("-f", "--file", type=str, dest="file",
                             help="Provide a file containing a list of domains to run DNSrazzle on.")
-        parser.add_argument("-o", "--out-directory", type=str, dest="out_dir", help="Directory to output reports to.")
-
-
+        parser.add_argument("-o", "--out-directory", type=str, dest="out_dir",
+                            help="Absolute path of directory to output reports to.  Will be created if doesn't exist")
 
         arguments = parser.parse_args()
 
     except SystemExit:
         # Handle exit() from passing --help
         raise
-    #except Exception:
-    #    print(Exception)
-    #    print_error("Wrong Option Provided!")
-    #    parser.print_help()
-    #    sys.exit(1)
-    #
-    # Parse options
-    #
+
     domain = arguments.domain
     out_dir = arguments.out_dir
     file = arguments.file
@@ -150,7 +160,7 @@ def main():
                 if check_domain(entry):
                     continue
                 else:
-                    #check_domain(arguments.domain)
+                    check_domain(arguments.domain)
                     screenshot_domain(entry,out_dir)
 
              # if an output xml file is specified it will write returned results.
