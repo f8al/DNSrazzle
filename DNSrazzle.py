@@ -37,7 +37,7 @@ import ipwhois
 #    along with this program; if not, write to the Free Software
 #    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 __version__ = '0.0.2'
-__author__ = 'securityshrimp @securityshrimp'
+__author__ = '@securityshrimp'
 
 '''
  ______  __    _ _______ ______   _______ _______ _______ ___     _______ 
@@ -49,8 +49,20 @@ __author__ = 'securityshrimp @securityshrimp'
 |______||_|  |__|_______|___|  |_|__| |__|_______|_______|_______|_______|
 '''
 
+def banner():
+    print(
+        " ______  __    _ _______ ______   _______ _______ _______ ___     _______\n",
+        "|      ||  |  | |       |    _ | |   _   |       |       |   |   |       |\n",
+        "|  _    |   |_| |  _____|   | || |  |_|  |____   |____   |   |   |    ___|\n",
+        "| | |   |       | |_____|   |_||_|       |____|  |____|  |   |   |   |___ \n",
+        "| |_|   |  _    |_____  |    __  |       | ______| ______|   |___|    ___|\n",
+        "|       | | |   |_____| |   |  | |   _   | |_____| |_____|       |   |___ \n",
+        "|______||_|  |__|_______|___|  |_|__| |__|_______|_______|_______|_______|\n")
+    print(f"Version {__version__} by {__author__}")
+
+
 def compare_screenshots(imageA, imageB):
-    print_status("Comparing screenshot " + imageA + " with " + imageB + ".")
+    print_status(f"Comparing screenshot {imageA} with {imageB}.")
     # load the two input images
     image_A = cv2.imread(imageA)
     image_B = cv2.imread(imageB)
@@ -65,11 +77,11 @@ def compare_screenshots(imageA, imageB):
     rounded_score = round(score, 2)
 
     if rounded_score == 1.00 :
-        print_status(imageA + " Is identical to " + imageB +" with a score of " + str(round(score,2)) + "!")
+        print_status(f"{imageA}  Is identical to {imageB} with a score of {rounded_score}!")
     elif rounded_score > .90 :
-        print_status(imageA + " Is similar to " + imageB + " with a score of " + str(round(score,2)) + "!")
+        print_status(f"{imageA} Is similar to  {imageB} with a score of {str(rounded_score)} !")
     elif rounded_score < .90 :
-        print_status(imageA + " Is different from " + imageB + " with a score of " + str(round(score,2)) + "!")
+        print_status(f"{imageA} Is different from  {imageB} with a score of {str(rounded_score)}!")
 
     """
     # threshold the difference image, followed by finding contours to
@@ -144,7 +156,7 @@ def screenshot_domain(domain,out_dir):
     driver.set_window_size(1920,1080)  # May need manual adjustment
     driver.get_screenshot_as_file(ss_path)
     driver.quit()
-    print_status('Screenshot for ' + domain + ' saved to ' + ss_path)
+    print_status(f"Screenshot for {domain} saved to {ss_path}")
 
 def create_folders(out_dir):
     '''
@@ -174,14 +186,7 @@ def main():
     file = None
     out_dir = None
 
-    print(
-        " ______  __    _ _______ ______   _______ _______ _______ ___     _______\n",
-        "|      ||  |  | |       |    _ | |   _   |       |       |   |   |       |\n",
-        "|  _    |   |_| |  _____|   | || |  |_|  |____   |____   |   |   |    ___|\n",
-        "| | |   |       | |_____|   |_||_|       |____|  |____|  |   |   |   |___ \n",
-        "| |_|   |  _    |_____  |    __  |       | ______| ______|   |___|    ___|\n",
-        "|       | | |   |_____| |   |  | |   _   | |_____| |_____|       |   |___ \n",
-        "|______||_|  |__|_______|___|  |_|__| |__|_______|_______|_______|_______|\n")
+    banner()
     #
     # Define options
     #
@@ -207,7 +212,7 @@ def main():
 
 
     if domain is None:
-        print_status('No Domain to target specified!')
+        print_status(f'No Domain to target specified!')
         sys.exit(1)
 
     elif domain is not None and out_dir is None:
@@ -231,7 +236,7 @@ def main():
             sys.exit(1)
 
         except dns.exception.Timeout:
-            print_error("A timeout error occurred please make sure you can reach the target DNS Servers")
+            print_error(f"A timeout error occurred please make sure you can reach the target DNS Servers")
 
     elif domain is not None and out_dir is not None:
         try:
@@ -246,8 +251,8 @@ def main():
                     check_domain(arguments.domain)
                     #screenshot_domain(entry,out_dir)
                     #portscan(arguments.domain, arguments.out_dir)
-                    #compare_screenshots(out_dir + '/screenshots/originals/' + arguments.domain + '.png',
-                    #                    out_dir + '/screenshots/baxterhealthcarecompany.com.png')
+                    compare_screenshots(out_dir + '/screenshots/originals/' + arguments.domain + '.png',
+                                        out_dir + '/screenshots/baxterhealthcarecompany.com.png')
 
 
 
