@@ -114,8 +114,10 @@ def portscan(domain, out_dir):
         create_folders(out_dir)
     nm.scan(hosts=domain, arguments='-A -T4 -sV -oG ' + out_dir + '/nmap/' + domain + '.txt')
     hosts_list = [(x, nm[x]['status']['state']) for x in nm.all_hosts()]
-    print(nm.csv())
-
+    #print(nm.csv())
+    f = open(out_dir + '/nmap/' + domain + '.csv' , "w")
+    f.write(nm.csv())
+    f.close()
 
 
 def check_domain(t_domain,r_domain,out_dir):
@@ -165,19 +167,11 @@ def create_folders(out_dir):
     '''
     function to create output folders at location specified with -o
     '''
-    cwd = os.getcwd()
-    if out_dir is not None:
-        os.makedirs(out_dir + '/screenshots/', exist_ok=True)
-        os.makedirs(out_dir + '/screenshots/originals/', exist_ok=True)
-        os.makedirs(out_dir + '/dnsrecon/', exist_ok=True)
-        os.makedirs(out_dir + '/dnstwist/', exist_ok=True)
-        os.makedirs(out_dir + '/nmap/', exist_ok=True)
-    else:
-        os.makedirs(cwd + '/screenshots/', exist_ok=True)
-        os.makedirs(cwd + '/screenshots/originals/', exist_ok=True)
-        os.makedirs(cwd + '/dnsrecon/', exist_ok=True)
-        os.makedirs(cwd + '/dnstwist/', exist_ok=True)
-        os.makedirs(cwd + '/nmap/', exist_ok=True)
+    os.makedirs(out_dir + '/screenshots/', exist_ok=True)
+    os.makedirs(out_dir + '/screenshots/originals/', exist_ok=True)
+    os.makedirs(out_dir + '/dnsrecon/', exist_ok=True)
+    os.makedirs(out_dir + '/dnstwist/', exist_ok=True)
+    os.makedirs(out_dir + '/nmap/', exist_ok=True)
 
 def show_todo(r_domain):
     # Create a generator
@@ -185,17 +179,17 @@ def show_todo(r_domain):
         yield value[0], key
 
 def twistdomains(r_domain):
-    proc = Popen(['dnstwist', '-w', '-m', '-r', '-b', r_domain],
+    proc = Popen(['dnstwist', '-b', '-w', '-r', '-m', {r_domain}],
                             shell=True,
                             stdin=PIPE,
                             stdout=PIPE,
                             stderr=PIPE,
                             )
-    stdout_value, stderr_value = proc.communicate('through stdin to stdout')
-    print(
-    '\tpass through:', repr(stdout_value))
-    print(
-    '\tstderr      :', repr(stderr_value))
+    #stdout_value, stderr_value = proc.communicate('through stdin to stdout')
+    #print(
+    #'\tpass through:', repr(stdout_value))
+    #print(
+    #'\tstderr      :', repr(stderr_value))
 
 def main():
     #
@@ -237,7 +231,7 @@ def main():
          domain_raw_list = []
          with open(arguments.file) as f:
              for line in f:
-                 for item in line.split(","):     # todo validate ingest
+                 for item in line.split(","):
                      domain_raw_list.append(item)       
     else:
          print_error(f"You must specify either the -d or the -f option")
@@ -253,8 +247,9 @@ def main():
         for entry in domain_raw_list:
             r_domain = str(entry)
             print_status(f"Performing General Enumeration of Domain: {r_domain}")
-            screenshot_domain(r_domain, out_dir + "/screenshots/originals/")
             twistdomains(r_domain)
+            #screenshot_domain(r_domain, out_dir + "/screenshots/originals/")
+            #twistdomains(r_domain)
 
            #for t_domain in foo:
             #    if check_domain(t_domain, r_domain, out_dir): #tdomain is returned by dnstwist entry is rdomain, out_dir is out_dir
@@ -268,13 +263,11 @@ def main():
         sys.exit(1)
 
     except dns.exception.Timeout:
-        print_error("A timeout error occurred please make sure you can reach the target DNS Servers")
+        print_error(f"A timeout error occurred please make sure you can reach the target DNS Servers")
 
     else:
         sys.exit(1)
 
 
 if __name__ == "__main__":
-    #main()
-    r_domain = "baxter.com"
-    twistdomains(r_domain)
+    main()
