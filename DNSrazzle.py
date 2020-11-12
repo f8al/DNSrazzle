@@ -77,11 +77,11 @@ def compare_screenshots(imageA, imageB):
     rounded_score = round(score, 2)
 
     if rounded_score == 1.00 :
-        print_status(f"{imageA}  Is identical to {imageB} with a score of {rounded_score}!")
+        print_status(f"{imageA}  Is identical to {imageB} with a score of {str(rounded_score)}!")
     elif rounded_score > .90 :
-        print_status(f"{imageA} Is similar to  {imageB} with a score of {str(rounded_score)} !")
+        print_status(f"{imageA} Is similar to {imageB} with a score of {str(rounded_score)}!")
     elif rounded_score < .90 :
-        print_status(f"{imageA} Is different from  {imageB} with a score of {str(rounded_score)}!")
+        print_status(f"{imageA} Is different from {imageB} with a score of {str(rounded_score)}!")
 
     """
     # threshold the difference image, followed by finding contours to
