@@ -14,8 +14,7 @@ import nmap
 import imutils
 import cv2
 import math
-import ipwhois
-
+from subprocess import PIPE, Popen
 
 
 # -*- coding: utf-8 -*-
@@ -37,7 +36,8 @@ import ipwhois
 #    along with this program; if not, write to the Free Software
 #    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 __version__ = '0.0.3'
-__author__ = '@securityshrimp'
+__author__ = 'SecurityShrimp'
+__twitter__ = '@securityshrimp'
 
 '''
  ______  __    _ _______ ______   _______ _______ _______ ___     _______ 
@@ -122,10 +122,11 @@ def check_domain(t_domain,r_domain,out_dir):
     '''
     primary method for performing domain checks
     '''
-    screenshot_domain(t_domain, out_dir)
-    portscan(t_domain, out_dir)
+
+    screenshot_domain(t_domain, out_dir + '/screenshots/')
     compare_screenshots(out_dir + '/screenshots/originals/' + r_domain + '.png',
                         out_dir + '/screenshots/'+ t_domain + '.png')
+    portscan(t_domain, out_dir)
 
 
 
@@ -178,6 +179,23 @@ def create_folders(out_dir):
         os.makedirs(cwd + '/dnstwist/', exist_ok=True)
         os.makedirs(cwd + '/nmap/', exist_ok=True)
 
+def show_todo(r_domain):
+    # Create a generator
+    for key, value in cal.items():
+        yield value[0], key
+
+def twistdomains(r_domain):
+    proc = Popen(['dnstwist', '-w', '-m', '-r', '-b', r_domain],
+                            shell=True,
+                            stdin=PIPE,
+                            stdout=PIPE,
+                            stderr=PIPE,
+                            )
+    stdout_value, stderr_value = proc.communicate('through stdin to stdout')
+    print(
+    '\tpass through:', repr(stdout_value))
+    print(
+    '\tstderr      :', repr(stderr_value))
 
 def main():
     #
@@ -203,7 +221,7 @@ def main():
 
         arguments = parser.parse_args()
 
-    except SystemExit:
+    except KeyboardInterrupt:
         # Handle exit() from passing --help
         raise
 
@@ -219,10 +237,10 @@ def main():
          domain_raw_list = []
          with open(arguments.file) as f:
              for line in f:
-                 for item in line.split(","):
+                 for item in line.split(","):     # todo validate ingest
                      domain_raw_list.append(item)       
     else:
-         print_status("You must specify either the -d or the -f option")
+         print_error(f"You must specify either the -d or the -f option")
          sys.exit(1)
     
     # Everything you do depends on "out_dir" being defined, so let's just set it to cwd if we have to.
@@ -235,14 +253,12 @@ def main():
         for entry in domain_raw_list:
             r_domain = str(entry)
             print_status(f"Performing General Enumeration of Domain: {r_domain}")
-            screenshot_domain(r_domain,out_dir+"/screenshots/originals/")
+            screenshot_domain(r_domain, out_dir + "/screenshots/originals/")
+            twistdomains(r_domain)
 
-
-
-           
-            for t_domain in foo:
-                if check_domain(t_domain, r_domain, out_dir): #tdomain is returned by dnstwist entry is rdomain, out_dir is out_dir
-                    continue
+           #for t_domain in foo:
+            #    if check_domain(t_domain, r_domain, out_dir): #tdomain is returned by dnstwist entry is rdomain, out_dir is out_dir
+            #        continue
 
 
 
@@ -259,4 +275,6 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    #main()
+    r_domain = "baxter.com"
+    twistdomains(r_domain)
