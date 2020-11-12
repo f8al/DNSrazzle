@@ -36,7 +36,7 @@ import ipwhois
 #    You should have received a copy of the GNU General Public License
 #    along with this program; if not, write to the Free Software
 #    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
-__version__ = '0.0.2'
+__version__ = '0.0.3'
 __author__ = '@securityshrimp'
 
 '''
@@ -118,11 +118,14 @@ def portscan(domain, out_dir):
 
 
 
-def check_domain(domain):
+def check_domain(tdomain,rdomain,out_dir):
     '''
     primary method for performing domain checks
     '''
-    print_status(f"Checking domain {domain}!")
+    screenshot_domain(domain, out_dir)
+    portscan(domain, out_dir)
+    compare_screenshots(out_dir + '/screenshots/originals/' + rdomain + '.png',
+                        out_dir + '/screenshots/'+ tdomain + '.png')
 
 
 
@@ -147,10 +150,9 @@ def screenshot_domain(domain,out_dir):
     url = "http://" + str(domain).strip('[]')
     driver.get(url)
 
-    if out_dir is not None:
-        ss_path = str(out_dir + '/screenshots/' + domain + '.png')
-    else:
-        ss_path = str(cwd) + '/screenshots/'+ domain + '.png'
+
+    ss_path = str(out_dir + domain + '.png')
+    print ( ss_path )
 
     S = lambda X: driver.execute_script('return document.body.parentNode.scroll' + X)
     driver.set_window_size(1920,1080)  # May need manual adjustment
@@ -232,25 +234,25 @@ def main():
     try:
         for entry in domain_raw_list:
             print_status(f"Performing General Enumeration of Domain: {entry}")
+            screenshot_domain(entry,out_dir+"/screenshots/originals/")
+
+
            
             # if check_domain returns TRUE, then we SKIP this domain.
             # If check_domain returns FALSE, then we SAVE this domain.
             # XXX TODO -- are you sure about this? 
-            if check_domain(entry):
+            if check_domain(tdomain, entry, out_dir): #tdomain is returned by dnstwist entry is rdomain, out_dir is out_dir
                 continue
 
-            #screenshot_domain(entry,out_dir)
-            #portscan(arguments.domain, arguments.out_dir)
-            #compare_screenshots(out_dir + '/screenshots/originals/' + arguments.domain + '.png',
-            #                    out_dir + '/screenshots/baxterhealthcarecompany.com.png')
 
 
-        except dns.resolver.NXDOMAIN:
-            print_error(f"Could not resolve domain: {domain}")
-            sys.exit(1)
 
-        except dns.exception.Timeout:
-            print_error("A timeout error occurred please make sure you can reach the target DNS Servers")
+    except dns.resolver.NXDOMAIN:
+        print_error(f"Could not resolve domain: {domain}")
+        sys.exit(1)
+
+    except dns.exception.Timeout:
+        print_error("A timeout error occurred please make sure you can reach the target DNS Servers")
 
     else:
         sys.exit(1)
