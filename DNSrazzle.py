@@ -118,14 +118,14 @@ def portscan(domain, out_dir):
 
 
 
-def check_domain(tdomain,rdomain,out_dir):
+def check_domain(t_domain,r_domain,out_dir):
     '''
     primary method for performing domain checks
     '''
-    screenshot_domain(domain, out_dir)
-    portscan(domain, out_dir)
-    compare_screenshots(out_dir + '/screenshots/originals/' + rdomain + '.png',
-                        out_dir + '/screenshots/'+ tdomain + '.png')
+    screenshot_domain(t_domain, out_dir)
+    portscan(t_domain, out_dir)
+    compare_screenshots(out_dir + '/screenshots/originals/' + r_domain + '.png',
+                        out_dir + '/screenshots/'+ t_domain + '.png')
 
 
 
@@ -233,16 +233,16 @@ def main():
 
     try:
         for entry in domain_raw_list:
-            print_status(f"Performing General Enumeration of Domain: {entry}")
-            screenshot_domain(entry,out_dir+"/screenshots/originals/")
+            r_domain = str(entry)
+            print_status(f"Performing General Enumeration of Domain: {r_domain}")
+            screenshot_domain(r_domain,out_dir+"/screenshots/originals/")
+
 
 
            
-            # if check_domain returns TRUE, then we SKIP this domain.
-            # If check_domain returns FALSE, then we SAVE this domain.
-            # XXX TODO -- are you sure about this? 
-            if check_domain(tdomain, entry, out_dir): #tdomain is returned by dnstwist entry is rdomain, out_dir is out_dir
-                continue
+            for t_domain in foo:
+                if check_domain(t_domain, r_domain, out_dir): #tdomain is returned by dnstwist entry is rdomain, out_dir is out_dir
+                    continue
 
 
 
