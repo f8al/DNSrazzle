@@ -200,65 +200,44 @@ def main():
         # Handle exit() from passing --help
         raise
 
-    domain = arguments.domain
     out_dir = arguments.out_dir
-    file = arguments.file
     cwd = os.getcwd()
 
+    # First, you need to put the domains to be scanned into the "domains_to_scan" variable
+    # Use case 1 -- the user supplied the -d (domain) flag
+    # Use case 2 -- the user supplied the -f (file) flag
+    if arguments.domain is not None:
+         domain_raw_list = list(set(arguments.domain.split(",")))
+    elif arguments.file is not None:
+         domain_raw_list = []
+         with open(arguments.file) as f:
+             for line in f:
+                 for item in line.split(","):
+                     domain_raw_list.append(item)       
+    else:
+         print_status("You must specify either the -d or the -f option")
+         sys.exit(1)
+    
+    try:
+        for entry in domain_raw_list:
+            print_status(f"Performing General Enumeration of Domain: {entry}")
+           
+            # if check_domain returns TRUE, then we SKIP this domain.
+            # If check_domain returns FALSE, then we SAVE this domain.
+            # XXX TODO -- are you sure about this? 
+            if check_domain(entry):
+                continue
 
-    if domain is None:
-        print_status('No Domain to target specified!')
-        sys.exit(1)
+            # Everything you do depends on "out_dir" being defined, so let's just set it to cwd if we have to.
+            if out_dir is None:
+                out_dir =  os.getcwd()
+            print_status(f"Saving records to output folder {out_dir}")
+            create_folders(out_dir)
 
-    elif domain is not None and out_dir is None:
-        try:
-            domain = []
-            domain_raw_list = list(set(arguments.domain.split(",")))
-            for entry in domain_raw_list:
-                print_status(f"Performing General Enumeration of Domain: {entry}")
-                if check_domain(entry):
-                    continue
-                else:
-                    print_status(f"Saving records to output folder {out_dir}")
-                    #check_domain(arguments.domain)
-                    #screenshot_domain(entry,cwd+'/screenshots/originals/')
-                    #portscan(arguments.domain, cwd+'/nmap/')
-                    #compare_screenshots(cwd + '/screenshots/originals/' + arguments.domain + '.png',
-                                        #cwd + '/screenshots/baxterhealthcarecompany.com.png')
-                    IPWhois(domain)
-        except dns.resolver.NXDOMAIN:
-            print_error(f"Could not resolve domain: {domain}")
-            sys.exit(1)
-
-        except dns.exception.Timeout:
-            print_error("A timeout error occurred please make sure you can reach the target DNS Servers")
-
-    elif domain is not None and out_dir is not None:
-        try:
-            domain = []
-            domain_raw_list = list(set(arguments.domain.split(",")))
-            for entry in domain_raw_list:
-                print_status(f"Performing General Enumeration of Domain: {entry}")
-                if check_domain(entry):
-                    continue
-                else:
-                    print_status(f"Saving records to output folder {out_dir}")
-                    check_domain(arguments.domain)
-                    #screenshot_domain(entry,out_dir)
-                    #portscan(arguments.domain, arguments.out_dir)
-                    #compare_screenshots(out_dir + '/screenshots/originals/' + arguments.domain + '.png',
-                    #                    out_dir + '/screenshots/baxterhealthcarecompany.com.png')
-
-
-
-            if arguments.file is not None:
-                file = []
-                # print(arguments.file)
-                if os.path.isfile(arguments.file.strip()):
-                    infile = arguments.file.strip()
-                else:
-                    print_error(f"File {arguments.file.strip()} does not exist!")
-                    exit(1)
+            #screenshot_domain(entry,out_dir)
+            #portscan(arguments.domain, arguments.out_dir)
+            #compare_screenshots(out_dir + '/screenshots/originals/' + arguments.domain + '.png',
+            #                    out_dir + '/screenshots/baxterhealthcarecompany.com.png')
 
         except dns.resolver.NXDOMAIN:
             print_error(f"Could not resolve domain: {domain}")
@@ -269,8 +248,6 @@ def main():
 
     else:
         sys.exit(1)
-
-
 
 
 if __name__ == "__main__":
