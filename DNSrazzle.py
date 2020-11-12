@@ -77,7 +77,7 @@ def compare_screenshots(imageA, imageB):
     rounded_score = round(score, 2)
 
     if rounded_score == 1.00 :
-        print_status(f"{imageA}  Is identical to {imageB} with a score of {str(rounded_score)}!")
+        print_status(f"{imageA} Is identical to {imageB} with a score of {str(rounded_score)}!")
     elif rounded_score > .90 :
         print_status(f"{imageA} Is similar to {imageB} with a score of {str(rounded_score)}!")
     elif rounded_score < .90 :
@@ -108,7 +108,7 @@ def compare_screenshots(imageA, imageB):
     """
 
 def portscan(domain, out_dir):
-    print_status("Running nmap on "+ domain )
+    print_status(f"Running nmap on {domain}")
     nm = nmap.PortScanner()
     if not os.path.isfile(out_dir+'/nmap/'):
         create_folders(out_dir)
@@ -122,7 +122,7 @@ def check_domain(domain):
     '''
     primary method for performing domain checks
     '''
-    print_status("Checking domain " + domain + "!")
+    print_status(f"Checking domain {domain}!")
 
 
 
@@ -224,13 +224,11 @@ def main():
                 if check_domain(entry):
                     continue
                 else:
-                    print_status(f"Saving records to output folder {out_dir}")
-                    #check_domain(arguments.domain)
+                    check_domain(arguments.domain)
                     #screenshot_domain(entry,cwd+'/screenshots/originals/')
                     #portscan(arguments.domain, cwd+'/nmap/')
                     #compare_screenshots(cwd + '/screenshots/originals/' + arguments.domain + '.png',
                                         #cwd + '/screenshots/baxterhealthcarecompany.com.png')
-                    IPWhois(domain)
         except dns.resolver.NXDOMAIN:
             print_error(f"Could not resolve domain: {domain}")
             sys.exit(1)
@@ -251,8 +249,8 @@ def main():
                     check_domain(arguments.domain)
                     #screenshot_domain(entry,out_dir)
                     #portscan(arguments.domain, arguments.out_dir)
-                    compare_screenshots(out_dir + '/screenshots/originals/' + arguments.domain + '.png',
-                                        out_dir + '/screenshots/baxterhealthcarecompany.com.png')
+                    #compare_screenshots(out_dir + '/screenshots/originals/' + arguments.domain + '.png',
+                    #                    out_dir + '/screenshots/baxterhealthcarecompany.com.png')
 
 
 
