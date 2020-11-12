@@ -8,19 +8,21 @@ from selenium.webdriver.chrome.options import Options
 from webdriver_manager.chrome import ChromeDriverManager
 from contrib.dnsrecon.tools.parser import print_error, print_status
 from skimage.measure import compare_ssim
-from contrib.dnstwist import *
+import dnstwist
 from contrib.dnsrecon import *
 import nmap
 import imutils
 import cv2
 import math
+import ipwhois
+
 
 
 # -*- coding: utf-8 -*-
 
-#    DNSRecon
+#    DNSRazzle
 #
-#    Copyright (C) 2020  Carlos Perez
+#    Copyright (C) 2020   SecurityShrimp
 #
 #    This program is free software; you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -216,19 +218,18 @@ def main():
                     continue
                 else:
                     print_status(f"Saving records to output folder {out_dir}")
-                    check_domain(arguments.domain)
-                    screenshot_domain(entry,cwd+'/screenshots/originals/')
-                    portscan(arguments.domain, cwd+'/nmap/')
-                    compare_screenshots(cwd + '/screenshots/originals/' + arguments.domain + '.png',
-                                        cwd + '/screenshots/baxterhealthcarecompany.com.png')
+                    #check_domain(arguments.domain)
+                    #screenshot_domain(entry,cwd+'/screenshots/originals/')
+                    #portscan(arguments.domain, cwd+'/nmap/')
+                    #compare_screenshots(cwd + '/screenshots/originals/' + arguments.domain + '.png',
+                                        #cwd + '/screenshots/baxterhealthcarecompany.com.png')
+                    IPWhois(domain)
         except dns.resolver.NXDOMAIN:
             print_error(f"Could not resolve domain: {domain}")
             sys.exit(1)
 
         except dns.exception.Timeout:
             print_error("A timeout error occurred please make sure you can reach the target DNS Servers")
-            print_error("directly and requests are not being filtered. Increase the timeout")
-            print_error("to a higher number with --lifetime <time> option.")
 
     elif domain is not None and out_dir is not None:
         try:
@@ -241,10 +242,10 @@ def main():
                 else:
                     print_status(f"Saving records to output folder {out_dir}")
                     check_domain(arguments.domain)
-                    screenshot_domain(entry,out_dir)
-                    portscan(arguments.domain, arguments.out_dir)
-                    compare_screenshots(out_dir + '/screenshots/originals/' + arguments.domain + '.png',
-                                        out_dir + '/screenshots/baxterhealthcarecompany.com.png')
+                    #screenshot_domain(entry,out_dir)
+                    #portscan(arguments.domain, arguments.out_dir)
+                    #compare_screenshots(out_dir + '/screenshots/originals/' + arguments.domain + '.png',
+                    #                    out_dir + '/screenshots/baxterhealthcarecompany.com.png')
 
 
 
@@ -263,8 +264,7 @@ def main():
 
         except dns.exception.Timeout:
             print_error("A timeout error occurred please make sure you can reach the target DNS Servers")
-            print_error("directly and requests are not being filtered. Increase the timeout")
-            print_error("to a higher number with --lifetime <time> option.")
+
     else:
         sys.exit(1)
 
