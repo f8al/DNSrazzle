@@ -218,6 +218,12 @@ def main():
          print_status("You must specify either the -d or the -f option")
          sys.exit(1)
     
+    # Everything you do depends on "out_dir" being defined, so let's just set it to cwd if we have to.
+    if out_dir is None:
+        out_dir =  os.getcwd()
+    print_status(f"Saving records to output folder {out_dir}")
+    create_folders(out_dir)
+
     try:
         for entry in domain_raw_list:
             print_status(f"Performing General Enumeration of Domain: {entry}")
@@ -227,12 +233,6 @@ def main():
             # XXX TODO -- are you sure about this? 
             if check_domain(entry):
                 continue
-
-            # Everything you do depends on "out_dir" being defined, so let's just set it to cwd if we have to.
-            if out_dir is None:
-                out_dir =  os.getcwd()
-            print_status(f"Saving records to output folder {out_dir}")
-            create_folders(out_dir)
 
             #screenshot_domain(entry,out_dir)
             #portscan(arguments.domain, arguments.out_dir)
