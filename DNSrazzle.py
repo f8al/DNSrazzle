@@ -37,7 +37,7 @@ import ipwhois
 #    along with this program; if not, write to the Free Software
 #    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 __version__ = '0.0.2'
-__author__ = 'securityshrimp @securityshrimp'
+__author__ = '@securityshrimp'
 
 '''
  ______  __    _ _______ ______   _______ _______ _______ ___     _______ 
@@ -49,8 +49,20 @@ __author__ = 'securityshrimp @securityshrimp'
 |______||_|  |__|_______|___|  |_|__| |__|_______|_______|_______|_______|
 '''
 
+def banner():
+    print(
+        " ______  __    _ _______ ______   _______ _______ _______ ___     _______\n",
+        "|      ||  |  | |       |    _ | |   _   |       |       |   |   |       |\n",
+        "|  _    |   |_| |  _____|   | || |  |_|  |____   |____   |   |   |    ___|\n",
+        "| | |   |       | |_____|   |_||_|       |____|  |____|  |   |   |   |___ \n",
+        "| |_|   |  _    |_____  |    __  |       | ______| ______|   |___|    ___|\n",
+        "|       | | |   |_____| |   |  | |   _   | |_____| |_____|       |   |___ \n",
+        "|______||_|  |__|_______|___|  |_|__| |__|_______|_______|_______|_______|\n")
+    print(f"Version {__version__} by {__author__}")
+
+
 def compare_screenshots(imageA, imageB):
-    print_status("Comparing screenshot " + imageA + " with " + imageB + ".")
+    print_status(f"Comparing screenshot {imageA} with {imageB}.")
     # load the two input images
     image_A = cv2.imread(imageA)
     image_B = cv2.imread(imageB)
@@ -65,11 +77,11 @@ def compare_screenshots(imageA, imageB):
     rounded_score = round(score, 2)
 
     if rounded_score == 1.00 :
-        print_status(imageA + " Is identical to " + imageB +" with a score of " + str(round(score,2)) + "!")
+        print_status(f"{imageA} Is identical to {imageB} with a score of {str(rounded_score)}!")
     elif rounded_score > .90 :
-        print_status(imageA + " Is similar to " + imageB + " with a score of " + str(round(score,2)) + "!")
+        print_status(f"{imageA} Is similar to {imageB} with a score of {str(rounded_score)}!")
     elif rounded_score < .90 :
-        print_status(imageA + " Is different from " + imageB + " with a score of " + str(round(score,2)) + "!")
+        print_status(f"{imageA} Is different from {imageB} with a score of {str(rounded_score)}!")
 
     """
     # threshold the difference image, followed by finding contours to
@@ -96,7 +108,7 @@ def compare_screenshots(imageA, imageB):
     """
 
 def portscan(domain, out_dir):
-    print_status("Running nmap on "+ domain )
+    print_status(f"Running nmap on {domain}")
     nm = nmap.PortScanner()
     if not os.path.isfile(out_dir+'/nmap/'):
         create_folders(out_dir)
@@ -110,7 +122,7 @@ def check_domain(domain):
     '''
     primary method for performing domain checks
     '''
-    print_status("Checking domain " + domain + "!")
+    print_status(f"Checking domain {domain}!")
 
 
 
@@ -144,7 +156,7 @@ def screenshot_domain(domain,out_dir):
     driver.set_window_size(1920,1080)  # May need manual adjustment
     driver.get_screenshot_as_file(ss_path)
     driver.quit()
-    print_status('Screenshot for ' + domain + ' saved to ' + ss_path)
+    print_status(f"Screenshot for {domain} saved to {ss_path}")
 
 def create_folders(out_dir):
     '''
@@ -174,14 +186,7 @@ def main():
     file = None
     out_dir = None
 
-    print(
-        " ______  __    _ _______ ______   _______ _______ _______ ___     _______\n",
-        "|      ||  |  | |       |    _ | |   _   |       |       |   |   |       |\n",
-        "|  _    |   |_| |  _____|   | || |  |_|  |____   |____   |   |   |    ___|\n",
-        "| | |   |       | |_____|   |_||_|       |____|  |____|  |   |   |   |___ \n",
-        "| |_|   |  _    |_____  |    __  |       | ______| ______|   |___|    ___|\n",
-        "|       | | |   |_____| |   |  | |   _   | |_____| |_____|       |   |___ \n",
-        "|______||_|  |__|_______|___|  |_|__| |__|_______|_______|_______|_______|\n")
+    banner()
     #
     # Define options
     #
@@ -238,6 +243,7 @@ def main():
             #portscan(arguments.domain, arguments.out_dir)
             #compare_screenshots(out_dir + '/screenshots/originals/' + arguments.domain + '.png',
             #                    out_dir + '/screenshots/baxterhealthcarecompany.com.png')
+
 
         except dns.resolver.NXDOMAIN:
             print_error(f"Could not resolve domain: {domain}")
