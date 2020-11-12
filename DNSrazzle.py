@@ -62,12 +62,14 @@ def compare_screenshots(imageA, imageB):
     (score, diff) = compare_ssim(grayA, grayB, full=True)
     diff = (diff * 255).astype("uint8")
     #print("SSIM: {}".format(score))
-    if round(score, 2) == 1.00 :
+    rounded_score = round(score, 2)
+
+    if rounded_score == 1.00 :
         print_status(imageA + " Is identical to " + imageB +" with a score of " + str(round(score,2)) + "!")
-    elif round(score, 2) > .90 :
+    elif rounded_score > .90 :
         print_status(imageA + " Is similar to " + imageB + " with a score of " + str(round(score,2)) + "!")
-    elif round(score, 2) < .90 :
-        print_status(imageA + " Is different from" + imageB + " with a score of " + str(round(score,2)) + "!")
+    elif rounded_score < .90 :
+        print_status(imageA + " Is different from " + imageB + " with a score of " + str(round(score,2)) + "!")
 
     """
     # threshold the difference image, followed by finding contours to
