@@ -8,13 +8,13 @@ from selenium.webdriver.chrome.options import Options
 from webdriver_manager.chrome import ChromeDriverManager
 from contrib.dnsrecon.tools.parser import print_error, print_status
 from skimage.measure import compare_ssim
-import dnstwist
 from contrib.dnsrecon import *
 import nmap
 import imutils
 import cv2
 import math
 from subprocess import PIPE, Popen
+import json
 
 
 # -*- coding: utf-8 -*-
@@ -132,11 +132,11 @@ def check_domain(t_domain,r_domain,out_dir):
 
 
 
-def write_to_file(data, target_file):
+def write_to_file(data, out_dir, target_file):
     """
     Function for writing returned data to a file
     """
-    f = open(target_file, "w")
+    f = open(out_dir + '/' +target_file, "w")
     f.write(data)
     f.close()
 
@@ -178,18 +178,17 @@ def show_todo(r_domain):
     for key, value in cal.items():
         yield value[0], key
 
-def twistdomains(r_domain):
-    proc = Popen(['dnstwist', '-b', '-w', '-r', '-m', {r_domain}],
-                            shell=True,
-                            stdin=PIPE,
-                            stdout=PIPE,
-                            stderr=PIPE,
-                            )
-    #stdout_value, stderr_value = proc.communicate('through stdin to stdout')
-    #print(
-    #'\tpass through:', repr(stdout_value))
-    #print(
-    #'\tstderr      :', repr(stderr_value))
+def twistdomain(r_domain:str):
+    _result = dict()
+    _cmd = ['dnstwist', '-b', '-w', '-r', '-m','-f', 'json']
+    _cmd.append(r_domain)
+    #print(_cmd)
+    proc = Popen(_cmd, shell=False, stdin=PIPE, stdout=PIPE,stderr=PIPE)
+    stdout_value, stderr_value = proc.communicate()
+
+    _result = json.loads(stdout_value)
+    return _result
+    #print(_result)
 
 def main():
     #
@@ -199,6 +198,7 @@ def main():
     domain = None
     file = None
     out_dir = None
+    x=0
 
     banner()
     #
@@ -247,13 +247,20 @@ def main():
         for entry in domain_raw_list:
             r_domain = str(entry)
             print_status(f"Performing General Enumeration of Domain: {r_domain}")
-            twistdomains(r_domain)
-            #screenshot_domain(r_domain, out_dir + "/screenshots/originals/")
+            t_domain = twistdomain(r_domain)
+            #print(t_domain)
+            for domain in t_domain:
+                for key in domain.keys():
+                    print(key, domain[key])
+
+
+
+                #screenshot_domain(r_domain, out_dir + "/screenshots/originals/")
             #twistdomains(r_domain)
 
            #for t_domain in foo:
             #    if check_domain(t_domain, r_domain, out_dir): #tdomain is returned by dnstwist entry is rdomain, out_dir is out_dir
-            #        continue
+            #        cont
 
 
 
@@ -271,3 +278,13 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+   #for item in twistdomain('a.com'):
+    #twistdomain('a.com')
+
+
+   #for key in twistdomains('a.com')[0].keys():
+
+    #_tmp=twistdomain('a.com')[1]
+    #for key in _tmp.keys():
+    #    print(key,_tmp[key])
