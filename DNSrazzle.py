@@ -146,6 +146,7 @@ def screenshot_domain(domain,out_dir):
     """
     function to take screenshot of supplied domain
     """
+    print_status(f"collecting screenshot of {domain}!")
     cwd = os.getcwd()
     options = webdriver.ChromeOptions()
     options.headless = True
@@ -155,7 +156,6 @@ def screenshot_domain(domain,out_dir):
 
 
     ss_path = str(out_dir + domain + '.png')
-    print ( ss_path )
 
     S = lambda X: driver.execute_script('return document.body.parentNode.scroll' + X)
     driver.set_window_size(1920,1080)  # May need manual adjustment
@@ -180,9 +180,11 @@ def show_todo(r_domain):
 
 def twistdomain(r_domain:str,dictionary:str):
     _result = dict()
-    if dictionary is not None:
-        _cmd = ['dnstwist', '-b', '-w', '-r', '-m', '-f', 'json','-d']
+    print_status(f"Running DNSTwist permutation engine on {r_domain}!")
+    if dictionary:
+        _cmd = ['dnstwist', '-b', '-w', '-r', '-m', '-f', 'json','--dictionary']
         -cmd.append(dictionary, r_domain)
+        print(_cmd)
     else:
         _cmd = ['dnstwist', '-b', '-w', '-r', '-m','-f', 'json']
         _cmd.append(r_domain)
@@ -251,21 +253,11 @@ def main():
         for entry in domain_raw_list:
             r_domain = str(entry)
             print_status(f"Performing General Enumeration of Domain: {r_domain}")
+            screenshot_domain(r_domain, out_dir + '/screenshots/originals/')
             t_domain = twistdomain(r_domain,dictionary)
             #print(t_domain)
             for domain in t_domain:
-                for key in domain.keys():
-                    print(key, domain[key])
-
-
-
-                #screenshot_domain(r_domain, out_dir + "/screenshots/originals/")
-            #twistdomains(r_domain)
-
-           #for t_domain in foo:
-            #    if check_domain(t_domain, r_domain, out_dir): #tdomain is returned by dnstwist entry is rdomain, out_dir is out_dir
-            #        cont
-
+                 check_domain(domain['domain-name'],r_domain, out_dir)
 
 
 
