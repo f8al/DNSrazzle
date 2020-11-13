@@ -178,11 +178,14 @@ def show_todo(r_domain):
     for key, value in cal.items():
         yield value[0], key
 
-def twistdomain(r_domain:str):
+def twistdomain(r_domain:str,dictionary:str):
     _result = dict()
-    _cmd = ['dnstwist', '-b', '-w', '-r', '-m','-f', 'json']
-    _cmd.append(r_domain)
-    #print(_cmd)
+    if dictionary is not None:
+        _cmd = ['dnstwist', '-b', '-w', '-r', '-m', '-f', 'json','-d']
+        -cmd.append(dictionary, r_domain)
+    else:
+        _cmd = ['dnstwist', '-b', '-w', '-r', '-m','-f', 'json']
+        _cmd.append(r_domain)
     proc = Popen(_cmd, shell=False, stdin=PIPE, stdout=PIPE,stderr=PIPE)
     stdout_value, stderr_value = proc.communicate()
 
@@ -198,7 +201,7 @@ def main():
     domain = None
     file = None
     out_dir = None
-    x=0
+    dictionary = None
 
     banner()
     #
@@ -212,7 +215,8 @@ def main():
                             help="Provide a file containing a list of domains to run DNSrazzle on.")
         parser.add_argument("-o", "--out-directory", type=str, dest="out_dir",
                             help="Absolute path of directory to output reports to.  Will be created if doesn't exist")
-
+        parser.add_argument("-D", "--dictionary", type=str, dest="dictionary",
+                            help="Path to dictionary file to pass to DNSTwist to aid in domain permutation generation.")
         arguments = parser.parse_args()
 
     except KeyboardInterrupt:
@@ -247,7 +251,7 @@ def main():
         for entry in domain_raw_list:
             r_domain = str(entry)
             print_status(f"Performing General Enumeration of Domain: {r_domain}")
-            t_domain = twistdomain(r_domain)
+            t_domain = twistdomain(r_domain,dictionary)
             #print(t_domain)
             for domain in t_domain:
                 for key in domain.keys():
@@ -278,13 +282,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-   #for item in twistdomain('a.com'):
-    #twistdomain('a.com')
-
-
-   #for key in twistdomains('a.com')[0].keys():
-
-    #_tmp=twistdomain('a.com')[1]
-    #for key in _tmp.keys():
-    #    print(key,_tmp[key])
