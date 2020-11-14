@@ -6,7 +6,8 @@ import dns.resolver
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from webdriver_manager.chrome import ChromeDriverManager
-from contrib.dnsrecon.tools.parser import print_error, print_status
+from selenium.common.exceptions import WebDriverException
+from contrib.dnsrecon.tools.parser import print_error, print_status, print_good
 from skimage.measure import compare_ssim
 from contrib.dnsrecon import *
 import nmap
@@ -35,7 +36,7 @@ import json
 #    You should have received a copy of the GNU General Public License
 #    along with this program; if not, write to the Free Software
 #    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
-__version__ = '0.0.3'
+__version__ = '0.0.5'
 __author__ = 'SecurityShrimp'
 __twitter__ = '@securityshrimp'
 
@@ -63,25 +64,28 @@ def banner():
 
 def compare_screenshots(imageA, imageB):
     print_status(f"Comparing screenshot {imageA} with {imageB}.")
-    # load the two input images
-    image_A = cv2.imread(imageA)
-    image_B = cv2.imread(imageB)
-    # convert the images to grayscale
-    grayA = cv2.cvtColor(image_A, cv2.COLOR_BGR2GRAY)
-    grayB = cv2.cvtColor(image_B, cv2.COLOR_BGR2GRAY)
-    # compute the Structural Similarity Index (SSIM) between the two
-    # images, ensuring that the difference image is returned
-    (score, diff) = compare_ssim(grayA, grayB, full=True)
-    diff = (diff * 255).astype("uint8")
-    #print("SSIM: {}".format(score))
-    rounded_score = round(score, 2)
+    try:
+        # load the two input images
+        image_A = cv2.imread(imageA)
+        image_B = cv2.imread(imageB)
+        # convert the images to grayscale
+        grayA = cv2.cvtColor(image_A, cv2.COLOR_BGR2GRAY)
+        grayB = cv2.cvtColor(image_B, cv2.COLOR_BGR2GRAY)
+        # compute the Structural Similarity Index (SSIM) between the two
+        # images, ensuring that the difference image is returned
+        (score, diff) = compare_ssim(grayA, grayB, full=True)
+        diff = (diff * 255).astype("uint8")
+        #print("SSIM: {}".format(score))
+        rounded_score = round(score, 2)
 
-    if rounded_score == 1.00 :
-        print_status(f"{imageA} Is identical to {imageB} with a score of {str(rounded_score)}!")
-    elif rounded_score > .90 :
-        print_status(f"{imageA} Is similar to {imageB} with a score of {str(rounded_score)}!")
-    elif rounded_score < .90 :
-        print_status(f"{imageA} Is different from {imageB} with a score of {str(rounded_score)}!")
+        if rounded_score == 1.00 :
+            print_status(f"{imageA} Is identical to {imageB} with a score of {str(rounded_score)}!")
+        elif rounded_score > .90 :
+            print_status(f"{imageA} Is similar to {imageB} with a score of {str(rounded_score)}!")
+        elif rounded_score < .90 :
+            print_status(f"{imageA} Is different from {imageB} with a score of {str(rounded_score)}!")
+    except cv2.error as exception:
+            print_error(f"Unable to compare screenshots.  One or more of the screenshots are missing!")
 
     """
     # threshold the difference image, followed by finding contours to
@@ -128,7 +132,7 @@ def check_domain(t_domain,r_domain,out_dir):
     screenshot_domain(t_domain, out_dir + '/screenshots/')
     compare_screenshots(out_dir + '/screenshots/originals/' + r_domain + '.png',
                         out_dir + '/screenshots/'+ t_domain + '.png')
-    portscan(t_domain, out_dir)
+    #portscan(t_domain, out_dir)
 
 
 
@@ -146,22 +150,26 @@ def screenshot_domain(domain,out_dir):
     """
     function to take screenshot of supplied domain
     """
-    print_status(f"collecting screenshot of {domain}!")
-    cwd = os.getcwd()
-    options = webdriver.ChromeOptions()
-    options.headless = True
-    driver = webdriver.Chrome(ChromeDriverManager().install(),options=options)
-    url = "http://" + str(domain).strip('[]')
-    driver.get(url)
+
+    try:
+        print_status(f"collecting screenshot of {domain}!")
+        options = webdriver.ChromeOptions()
+        options.headless = True
+        driver = webdriver.Chrome(ChromeDriverManager().install(),options=options)
+        url = "http://" + str(domain).strip('[]')
+        driver.get(url)
 
 
-    ss_path = str(out_dir + domain + '.png')
+        ss_path = str(out_dir + domain + '.png')
 
-    S = lambda X: driver.execute_script('return document.body.parentNode.scroll' + X)
-    driver.set_window_size(1920,1080)  # May need manual adjustment
-    driver.get_screenshot_as_file(ss_path)
-    driver.quit()
-    print_status(f"Screenshot for {domain} saved to {ss_path}")
+        S = lambda X: driver.execute_script('return document.body.parentNode.scroll' + X)
+        driver.set_window_size(1920,1080)  # May need manual adjustment
+        driver.get_screenshot_as_file(ss_path)
+        driver.quit()
+        print_good(f"Screenshot for {domain} saved to {ss_path}")
+    except WebDriverException as exception:
+        print_error(f"Unable to screenshot {domain}!")
+
 
 def create_folders(out_dir):
     '''
@@ -179,6 +187,12 @@ def show_todo(r_domain):
         yield value[0], key
 
 def twistdomain(r_domain:str,dictionary:str):
+    '''
+    takes the value of r_domain and passes it to dnstwist as the target domain
+    :param r_domain:
+    :param dictionary:
+    :return:
+    '''
     _result = dict()
     print_status(f"Running DNSTwist permutation engine on {r_domain}!")
     if dictionary:
