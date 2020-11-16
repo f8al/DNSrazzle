@@ -189,25 +189,26 @@ def show_todo(r_domain):
 def twistdomain(r_domain:str,dictionary:str):
     '''
     takes the value of r_domain and passes it to dnstwist as the target domain
-    :param r_domain:
-    :param dictionary:
-    :return:
+    :param r_domain: reference domain to be permutated with dnstwist
+    :param dictionary: dictionary file to extend dnstwist permutations
+    :return: returns a json object with permutated domains, registrars, creation date, banners, and MX records
     '''
     _result = dict()
     print_status(f"Running DNSTwist permutation engine on {r_domain}!")
+    _base_cmd = ['dnstwist', '-b', '-w', '-r', '-m', '-f', 'json']
+    _dict_cmd = ['--dictionary', dictionary, r_domain]
     if dictionary:
-        _cmd = ['dnstwist', '-b', '-w', '-r', '-m', '-f', 'json','--dictionary']
-        -cmd.append(dictionary, r_domain)
+        _base_cmd = _base_cmd + _dict_cmd
         print(_cmd)
     else:
-        _cmd = ['dnstwist', '-b', '-w', '-r', '-m','-f', 'json']
-        _cmd.append(r_domain)
-    proc = Popen(_cmd, shell=False, stdin=PIPE, stdout=PIPE,stderr=PIPE)
+        _base_cmd.append(r_domain)
+        print(_base_cmd)
+
+    proc = Popen(_base_cmd, shell=False, stdin=PIPE, stdout=PIPE,stderr=PIPE)
     stdout_value, stderr_value = proc.communicate()
 
     _result = json.loads(stdout_value)
     return _result
-    #print(_result)
 
 def main():
     #
@@ -233,6 +234,8 @@ def main():
                             help="Absolute path of directory to output reports to.  Will be created if doesn't exist")
         parser.add_argument("-D", "--dictionary", type=str, dest="dictionary",
                             help="Path to dictionary file to pass to DNSTwist to aid in domain permutation generation.")
+        parser.add_argument('-g', "--generate", action="store_true", default=False,
+                            help="Do a dry run of DNSRazzle and just output permutated domain names") #todo add method to just run dnstwist and set output to list and return list of permutated domains
         arguments = parser.parse_args()
 
     except KeyboardInterrupt:
@@ -240,7 +243,6 @@ def main():
         raise
 
     out_dir = arguments.out_dir
-    cwd = os.getcwd()
 
     # First, you need to put the domains to be scanned into the "domains_to_scan" variable
     # Use case 1 -- the user supplied the -d (domain) flag
@@ -268,11 +270,11 @@ def main():
             r_domain = str(entry)
             print_status(f"Performing General Enumeration of Domain: {r_domain}")
             screenshot_domain(r_domain, out_dir + '/screenshots/originals/')
+            print(dictionary)
             t_domain = twistdomain(r_domain,dictionary)
             #print(t_domain)
             for domain in t_domain:
                  check_domain(domain['domain-name'],r_domain, out_dir)
-
 
 
     except dns.resolver.NXDOMAIN:
