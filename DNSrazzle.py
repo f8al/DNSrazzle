@@ -199,14 +199,10 @@ def twistdomain(r_domain:str,dictionary:str):
     _dict_cmd = ['--dictionary', dictionary, r_domain]
     if dictionary:
         _base_cmd = _base_cmd + _dict_cmd
-        print(_cmd)
     else:
         _base_cmd.append(r_domain)
-        print(_base_cmd)
-
     proc = Popen(_base_cmd, shell=False, stdin=PIPE, stdout=PIPE,stderr=PIPE)
     stdout_value, stderr_value = proc.communicate()
-
     _result = json.loads(stdout_value)
     return _result
 
@@ -271,7 +267,7 @@ def main():
             print_status(f"Performing General Enumeration of Domain: {r_domain}")
             screenshot_domain(r_domain, out_dir + '/screenshots/originals/')
             print(dictionary)
-            t_domain = twistdomain(r_domain,dictionary)
+            t_domain = twistdomain(r_domain,arguments.dictionary)
             #print(t_domain)
             for domain in t_domain:
                  check_domain(domain['domain-name'],r_domain, out_dir)
