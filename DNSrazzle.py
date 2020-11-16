@@ -36,7 +36,7 @@ import json
 #    You should have received a copy of the GNU General Public License
 #    along with this program; if not, write to the Free Software
 #    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
-__version__ = '0.0.5'
+__version__ = '0.0.6'
 __author__ = 'SecurityShrimp'
 __twitter__ = '@securityshrimp'
 
@@ -116,7 +116,7 @@ def portscan(domain, out_dir):
     nm = nmap.PortScanner()
     if not os.path.isfile(out_dir+'/nmap/'):
         create_folders(out_dir)
-    nm.scan(hosts=domain, arguments='-A -T4 -sV -oG ' + out_dir + '/nmap/' + domain + '.txt')
+    nm.scan(hosts=domain, arguments='-A -T4 -sV')
     hosts_list = [(x, nm[x]['status']['state']) for x in nm.all_hosts()]
     #print(nm.csv())
     f = open(out_dir + '/nmap/' + domain + '.csv' , "w")
@@ -132,7 +132,9 @@ def check_domain(t_domain,r_domain,out_dir):
     screenshot_domain(t_domain, out_dir + '/screenshots/')
     compare_screenshots(out_dir + '/screenshots/originals/' + r_domain + '.png',
                         out_dir + '/screenshots/'+ t_domain + '.png')
-    #portscan(t_domain, out_dir)
+    portscan(t_domain, out_dir)
+    dnsrecon(t_domain, out_dir + '/dnsrecon/')
+
 
 
 
@@ -206,6 +208,14 @@ def twistdomain(r_domain:str,dictionary:str):
     _result = json.loads(stdout_value)
     return _result
 
+
+def dnsrecon(t_domain, out_dir):
+    print_status(f"Running DNSRecon on {t_domain}!")
+    _cmd = ['python3','dnsrecon.py','-a','-s', '-y','-k','-z','-d']
+    _cmd.append(t_domain)
+    print(_cmd)
+    print(t_domain,out_dir)
+
 def main():
     #
     # Option Variables
@@ -266,11 +276,11 @@ def main():
             r_domain = str(entry)
             print_status(f"Performing General Enumeration of Domain: {r_domain}")
             screenshot_domain(r_domain, out_dir + '/screenshots/originals/')
-            print(dictionary)
             t_domain = twistdomain(r_domain,arguments.dictionary)
-            #print(t_domain)
             for domain in t_domain:
-                 check_domain(domain['domain-name'],r_domain, out_dir)
+                #json.dump(domain, out_dir + '/dnstwist/' + domain['domain-name'] + '.json')
+                json.dumps(domain)
+                check_domain(domain['domain-name'],r_domain, out_dir)
 
 
     except dns.resolver.NXDOMAIN:
