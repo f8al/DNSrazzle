@@ -16,6 +16,7 @@ import cv2
 import math
 from subprocess import PIPE, Popen
 import json
+import dnstwist
 
 
 # -*- coding: utf-8 -*-
@@ -216,6 +217,14 @@ def dnsrecon(t_domain, out_dir):
     print(_cmd)
     print(t_domain,out_dir)
 
+
+def gen(r_domain):
+    fuzz = dnstwist.DomainFuzz(r_domain)
+    #fuzz.dictionary = dictionary
+    fuzz.generate()
+    for entry in fuzz.domains:
+        print(entry['domain-name'])
+
 def main():
     #
     # Option Variables
@@ -234,14 +243,14 @@ def main():
     try:
         parser.add_argument("-d", "--domain", type=str, dest="domain", help="Target domain or domain list.",
                             required=True)
-        parser.add_argument("-f", "--file", type=str, dest="file",
+        parser.add_argument("-f", "--file", type=str, dest="file",metavar='FILE',
                             help="Provide a file containing a list of domains to run DNSrazzle on.")
         parser.add_argument("-o", "--out-directory", type=str, dest="out_dir",
                             help="Absolute path of directory to output reports to.  Will be created if doesn't exist")
-        parser.add_argument("-D", "--dictionary", type=str, dest="dictionary",
+        parser.add_argument("-D", "--dictionary", type=str, dest="dictionary",metavar='FILE',
                             help="Path to dictionary file to pass to DNSTwist to aid in domain permutation generation.")
-        parser.add_argument('-g', "--generate", action="store_true", default=False,
-                            help="Do a dry run of DNSRazzle and just output permutated domain names") #todo add method to just run dnstwist and set output to list and return list of permutated domains
+        parser.add_argument('-g', "--generate",dest="generate", action="store_true", default=False,
+                            help="Do a dry run of DNSRazzle and just output permutated domain names")
         arguments = parser.parse_args()
 
     except KeyboardInterrupt:
@@ -264,12 +273,18 @@ def main():
     else:
          print_error(f"You must specify either the -d or the -f option")
          sys.exit(1)
-    
+
+    if arguments.generate:
+        gen(arguments.domain)
+        sys.exit(1)
+
     # Everything you do depends on "out_dir" being defined, so let's just set it to cwd if we have to.
     if out_dir is None:
         out_dir =  os.getcwd()
     print_status(f"Saving records to output folder {out_dir}")
     create_folders(out_dir)
+
+
 
     try:
         for entry in domain_raw_list:
@@ -296,3 +311,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
