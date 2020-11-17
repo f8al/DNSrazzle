@@ -1,4 +1,41 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+'''
+ ______  __    _ _______ ______   _______ _______ _______ ___     _______
+|      ||  |  | |       |    _ | |   _   |       |       |   |   |       |
+|  _    |   |_| |  _____|   | || |  |_|  |____   |____   |   |   |    ___|
+| | |   |       | |_____|   |_||_|       |____|  |____|  |   |   |   |___
+| |_|   |  _    |_____  |    __  |       | ______| ______|   |___|    ___|
+|       | | |   |_____| |   |  | |   _   | |_____| |_____|       |   |___
+|______||_|  |__|_______|___|  |_|__| |__|_______|_______|_______|_______|
+
+
+Generate, resolve, and compare domain variations to detect typosquatting,
+phishing, and brand impersonation
+
+Copyright (C) 2020   SecurityShrimp
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the Apache License V2.0 as published by
+the Apache Software Foundation; Applies version 2 of the License.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+Apache License v2.0 for more details.
+
+You should have received a copy of the Apache License
+along with this program; if not, write to The Apache Software
+Foundation 1000 N West Street, Suite 1200 Wilmington, DE 19801 U.S.A.
+'''
+
+
+__version__ = '0.0.6'
+__author__ = 'SecurityShrimp'
+__twitter__ = '@securityshrimp'
+
+
 import sys
 import argparse
 import os
@@ -21,37 +58,8 @@ import threading
 
 
 
-# -*- coding: utf-8 -*-
 
-#    DNSRazzle
-#
-#    Copyright (C) 2020   SecurityShrimp
-#
-#    This program is free software; you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation; Applies version 2 of the License.
-#
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
-#
-#    You should have received a copy of the GNU General Public License
-#    along with this program; if not, write to the Free Software
-#    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
-__version__ = '0.0.6'
-__author__ = 'SecurityShrimp'
-__twitter__ = '@securityshrimp'
 
-'''
- ______  __    _ _______ ______   _______ _______ _______ ___     _______ 
-|      ||  |  | |       |    _ | |   _   |       |       |   |   |       |
-|  _    |   |_| |  _____|   | || |  |_|  |____   |____   |   |   |    ___|
-| | |   |       | |_____|   |_||_|       |____|  |____|  |   |   |   |___ 
-| |_|   |  _    |_____  |    __  |       | ______| ______|   |___|    ___|
-|       | | |   |_____| |   |  | |   _   | |_____| |_____|       |   |___ 
-|______||_|  |__|_______|___|  |_|__| |__|_______|_______|_______|_______|
-'''
 
 def banner():
     print(
@@ -234,9 +242,6 @@ def main():
     #
     os.environ['WDM_LOG_LEVEL'] = '0'
     domain = None
-    file = None
-    out_dir = None
-    dictionary = None
 
     banner()
     #
