@@ -310,5 +310,11 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    #main()
+    fuzz = dnstwist.DomainFuzz('google.com')
+    # fuzz.dictionary = dictionary
+    #fuzz.generate()
 
+    print(dir(fuzz))
+    for entry in fuzz.domains:
+        print(entry['domain-name'])
