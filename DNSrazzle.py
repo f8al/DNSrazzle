@@ -17,6 +17,8 @@ import math
 from subprocess import PIPE, Popen
 import json
 import dnstwist
+import threading
+
 
 
 # -*- coding: utf-8 -*-
@@ -218,9 +220,10 @@ def dnsrecon(t_domain, out_dir):
     print(t_domain,out_dir)
 
 
-def gen(r_domain):
+def gen(r_domain, dictionary, tld):
     fuzz = dnstwist.DomainFuzz(r_domain)
-    #fuzz.dictionary = dictionary
+    fuzz.dictionary = dictionary
+    fuzz.tld_dictionary = tld
     fuzz.generate()
     for entry in fuzz.domains:
         print(entry['domain-name'])
@@ -243,14 +246,16 @@ def main():
     try:
         parser.add_argument("-d", "--domain", type=str, dest="domain", help="Target domain or domain list.",
                             required=True)
-        parser.add_argument("-f", "--file", type=str, dest="file",metavar='FILE',
+        parser.add_argument("-f", "--file", type=str, dest="file", metavar='FILE', default=None,
                             help="Provide a file containing a list of domains to run DNSrazzle on.")
-        parser.add_argument("-o", "--out-directory", type=str, dest="out_dir",
+        parser.add_argument("-o", "--out-directory", type=str, dest="out_dir", default=None,
                             help="Absolute path of directory to output reports to.  Will be created if doesn't exist")
-        parser.add_argument("-D", "--dictionary", type=str, dest="dictionary",metavar='FILE',
+        parser.add_argument("-D", "--dictionary", type=str, dest="dictionary", metavar='FILE', default=None,
                             help="Path to dictionary file to pass to DNSTwist to aid in domain permutation generation.")
-        parser.add_argument('-g', "--generate",dest="generate", action="store_true", default=False,
+        parser.add_argument('-g', "--generate", dest="generate", action="store_true", default=False,
                             help="Do a dry run of DNSRazzle and just output permutated domain names")
+        parser.add_argument('--tld', type=str, dest='tld', metavar="FILE", default=None,
+                            help='Path to TLD dictionary file.') #todo add tld dictionary processing
         arguments = parser.parse_args()
 
     except KeyboardInterrupt:
@@ -275,7 +280,7 @@ def main():
          sys.exit(1)
 
     if arguments.generate:
-        gen(arguments.domain)
+        gen(arguments.domain,arguments.dictionary,arguments.tld)
         sys.exit(1)
 
     # Everything you do depends on "out_dir" being defined, so let's just set it to cwd if we have to.
@@ -310,11 +315,26 @@ def main():
 
 
 if __name__ == "__main__":
-    #main()
-    fuzz = dnstwist.DomainFuzz('google.com')
-    # fuzz.dictionary = dictionary
-    #fuzz.generate()
+    main()
 
-    print(dir(fuzz))
-    for entry in fuzz.domains:
-        print(entry['domain-name'])
+
+
+class setup:
+    def __init__(self):
+        self.domain = None
+        self.out_dir = None
+        self.tld = None
+        self.dictionary = None
+        self.file = None
+
+
+def resolvdoms(r_domain):
+    _r = resolver()
+
+    try:
+        for i in range(len(fuzz.domains)):
+            _tmp = _r.resolve(fuzz.domains[i]['domain-name'])
+    except:
+        pass
+    else:
+        dir(_r)
