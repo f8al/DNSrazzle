@@ -94,12 +94,13 @@ def print_debug(message=""):
 def print_line(message=""):
     print(f"{message}", flush=True)
 
-def cli_print(domains=[]):
+def format_domains(domains=[]):
     cli = []
     width_fuzzer = max([len(x['fuzzer']) for x in domains]) + 1
     width_domain = max([len(x['domain-name']) for x in domains]) + 1
     for domain in domains:
         info = []
+        domains[:] = [x for x in domains if len(x) > 2]
 
         if 'dns-a' in domain:
             if 'geoip-country' in domain:
