@@ -29,7 +29,8 @@ setup(
                 'matplotlib',
                 'tld',
                 'whois',
-                'dnspython'],
+                'dnspython',
+                'progress'],
 	entry_points={
 		'console_scripts': ['DNSrazzle=DNSRazzle:main']
 	},

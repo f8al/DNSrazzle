@@ -19,3 +19,4 @@ python-nmap
 imutils
 argparse
 dnstwist
+progress
