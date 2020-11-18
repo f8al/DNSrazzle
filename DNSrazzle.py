@@ -147,7 +147,7 @@ def main():
     try:
         for entry in domain_raw_list:
             r_domain = str(entry)
-            razzle = dnsrazzle(r_domain, arguments.out_dir, tld, dictionary, arguments.file,
+            razzle = DnsRazzle(r_domain, out_dir, tld, dictionary, arguments.file,
                                arguments.useragent)
 
             if arguments.generate:
@@ -155,7 +155,7 @@ def main():
             else:
                 razzle.gen()
                 print_status(f"Performing General Enumeration of Domain: {r_domain}")
-                screenshot_domain(r_domain, out_dir + '/screenshots/originals/')
+                razzle.screenshot_domain(r_domain, out_dir + '/screenshots/originals/')
                 razzle.gendom_start()
                 while not razzle.jobs.empty():
                     razzle.gendom_progress()
@@ -168,7 +168,6 @@ def main():
 
                 for domain in razzle.domains:
                     razzle.check_domain(domain['domain-name'],entry, out_dir)
-                    #razzle.portscan(domain['domain-name]'], out_dir)
 
 
     except dns.resolver.NXDOMAIN:
@@ -208,51 +207,6 @@ def compare_screenshots(imageA, imageB):
             print_error(f"Unable to compare screenshots.  One or more of the screenshots are missing!")
 
 
-def portscan(domain, out_dir):
-    print_status(f"Running nmap on {domain}")
-    nm = nmap.PortScanner()
-    nm.scan(hosts=domain, arguments='-A -T4 -sV')
-    f = open(out_dir + '/nmap/' + domain + '.csv' , "w")
-    f.write(nm.csv())
-    f.close()
-
-
-#def check_domain(t_domain,r_domain,out_dir):
-    '''
-    primary method for performing domain checks
-    '''
-
-    #screenshot_domain(t_domain, out_dir + '/screenshots/')
-    #compare_screenshots(out_dir + '/screenshots/originals/' + r_domain + '.png',
-    #                    out_dir + '/screenshots/'+ t_domain + '.png')
-    #razzle.portscan(t_domain, out_dir)
-    #dnsrecon(t_domain, out_dir + '/dnsrecon/')
-
-
-
-
-def screenshot_domain(domain,out_dir):
-    """
-    function to take screenshot of supplied domain
-    """
-
-    try:
-        print_status(f"collecting screenshot of {domain}!")
-        options = webdriver.ChromeOptions()
-        options.headless = True
-        driver = webdriver.Chrome(ChromeDriverManager().install(),options=options)
-        url = "http://" + str(domain).strip('[]')
-        driver.get(url)
-
-
-        ss_path = str(out_dir + domain + '.png')
-
-        driver.set_window_size(1920,1080)  # May need manual adjustment
-        driver.get_screenshot_as_file(ss_path)
-        driver.quit()
-        print_good(f"Screenshot for {domain} saved to {ss_path}")
-    except WebDriverException as exception:
-        print_error(f"Unable to screenshot {domain}!")
 
 
 def dnsrecon(t_domain, out_dir):
@@ -262,7 +216,7 @@ def dnsrecon(t_domain, out_dir):
     print(_cmd)
     print(t_domain,out_dir)
 
-class dnsrazzle():
+class DnsRazzle():
     def __init__(self, domain, out_dir, tld, dictionary, file, useragent):
         self.domains = []
         self.domain = domain
@@ -279,9 +233,8 @@ class dnsrazzle():
     def gen(self, shouldPrint=False):
         fuzz = dnstwist.DomainFuzz(self.domain, self.dictionary, self.tld)
         fuzz.generate()
-        del fuzz.domains[0]
         if shouldPrint:
-            for entry in fuzz.domains:
+            for entry in fuzz.domains[1:]:
                 print(entry['domain-name'])
         self.domains = fuzz.domains
 
@@ -347,24 +300,45 @@ class dnsrazzle():
                         domain['whois-registrar'] = str(whoisq.registrar)
 
     def portscan(self, domains, out_dir):
-        for domain['domain-name'] in domains:
-            print_status(f"Running nmap on {domain}")
-            nm = nmap.PortScanner()
-            nm.scan(hosts=domain, arguments='-A -T4 -sV')
-            f = open(self.out_dir + '/nmap/' + domain + '.csv', "w")
-            f.write(nm.csv())
-            f.close()
+        print_status(f"Running nmap on {domains}")
+        nm = nmap.PortScanner()
+        nm.scan(hosts=domains, arguments='-A -T4 -sV')
+        f = open(self.out_dir + '/nmap/' + domains + '.csv', "w")
+        f.write(nm.csv())
+        f.close()
 
     def check_domain(self, domains, r_domain, out_dir):
         '''
         primary method for performing domain checks
         '''
 
-        screenshot_domain(domains, out_dir + '/screenshots/')
+        self.screenshot_domain(domains, out_dir + '/screenshots/')
         compare_screenshots(out_dir + '/screenshots/originals/' + r_domain + '.png',
                             out_dir + '/screenshots/' + domains + '.png')
-        razzle.portscan(domains, out_dir)
+        self.portscan(domains, out_dir)
         # dnsrecon(t_domain, out_dir + '/dnsrecon/')
+
+    def screenshot_domain(self, domain, out_dir):
+        """
+        function to take screenshot of supplied domain
+        """
+
+        try:
+            print_status(f"collecting screenshot of {domain}!")
+            options = webdriver.ChromeOptions()
+            options.headless = True
+            driver = webdriver.Chrome(ChromeDriverManager().install(), options=options)
+            url = "http://" + str(domain).strip('[]')
+            driver.get(url)
+
+            ss_path = str(out_dir + domain + '.png')
+
+            driver.set_window_size(1920, 1080)  # May need manual adjustment
+            driver.get_screenshot_as_file(ss_path)
+            driver.quit()
+            print_good(f"Screenshot for {domain} saved to {ss_path}")
+        except WebDriverException as exception:
+            print_error(f"Unable to screenshot {domain}!")
 
 
 if __name__ == "__main__":
