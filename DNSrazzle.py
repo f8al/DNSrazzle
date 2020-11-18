@@ -147,7 +147,7 @@ def main():
     try:
         for entry in domain_raw_list:
             r_domain = str(entry)
-            razzle = dnsrazzle(r_domain, arguments.out_dir, arguments.tld, arguments.dictionary, arguments.file,
+            razzle = dnsrazzle(r_domain, arguments.out_dir, tld, dictionary, arguments.file,
                                arguments.useragent)
 
             if arguments.generate:
@@ -163,10 +163,12 @@ def main():
                 razzle.gendom_stop()
                 razzle._whois(razzle.domains)
 
+
                 print(format_domains(razzle.domains))
 
                 for domain in razzle.domains:
-                    check_domain(domain['domain-name'],r_domain, out_dir)
+                    razzle.check_domain(domain['domain-name'],entry, out_dir)
+                    #razzle.portscan(domain['domain-name]'], out_dir)
 
 
     except dns.resolver.NXDOMAIN:
@@ -215,15 +217,15 @@ def portscan(domain, out_dir):
     f.close()
 
 
-def check_domain(t_domain,r_domain,out_dir):
+#def check_domain(t_domain,r_domain,out_dir):
     '''
     primary method for performing domain checks
     '''
 
-    screenshot_domain(t_domain, out_dir + '/screenshots/')
-    compare_screenshots(out_dir + '/screenshots/originals/' + r_domain + '.png',
-                        out_dir + '/screenshots/'+ t_domain + '.png')
-    portscan(t_domain, out_dir)
+    #screenshot_domain(t_domain, out_dir + '/screenshots/')
+    #compare_screenshots(out_dir + '/screenshots/originals/' + r_domain + '.png',
+    #                    out_dir + '/screenshots/'+ t_domain + '.png')
+    #razzle.portscan(t_domain, out_dir)
     #dnsrecon(t_domain, out_dir + '/dnsrecon/')
 
 
@@ -329,7 +331,7 @@ class dnsrazzle():
         self.bar.goto(self.jobs_max - self.jobs.qsize())
 
 
-    def _whois(self,domains):
+    def _whois(self, domains):
         for domain in domains:
             if len(domain) > 2:
                 try:
@@ -343,6 +345,26 @@ class dnsrazzle():
                         domain['whois-created'] = str(whoisq.creation_date).split(' ')[0]
                     if whoisq.registrar:
                         domain['whois-registrar'] = str(whoisq.registrar)
+
+    def portscan(self, domains, out_dir):
+        for domain['domain-name'] in domains:
+            print_status(f"Running nmap on {domain}")
+            nm = nmap.PortScanner()
+            nm.scan(hosts=domain, arguments='-A -T4 -sV')
+            f = open(self.out_dir + '/nmap/' + domain + '.csv', "w")
+            f.write(nm.csv())
+            f.close()
+
+    def check_domain(self, domains, r_domain, out_dir):
+        '''
+        primary method for performing domain checks
+        '''
+
+        screenshot_domain(domains, out_dir + '/screenshots/')
+        compare_screenshots(out_dir + '/screenshots/originals/' + r_domain + '.png',
+                            out_dir + '/screenshots/' + domains + '.png')
+        razzle.portscan(domains, out_dir)
+        # dnsrecon(t_domain, out_dir + '/dnsrecon/')
 
 
 if __name__ == "__main__":
