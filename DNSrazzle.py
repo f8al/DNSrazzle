@@ -51,6 +51,7 @@ from progress.bar import Bar
 import time
 from src.lib.IOUtil import *
 import signal
+import whois
 
 
 
@@ -160,8 +161,9 @@ def main():
                     razzle.gendom_progress()
                     time.sleep(0.5)
                 razzle.gendom_stop()
+                razzle._whois(razzle.domains)
 
-                print(dnstwist.create_cli(razzle.domains))
+                print(format_domains(razzle.domains))
 
                 for domain in razzle.domains:
                     check_domain(domain['domain-name'],r_domain, out_dir)
@@ -326,14 +328,22 @@ class dnsrazzle():
     def gendom_progress(self):
         self.bar.goto(self.jobs_max - self.jobs.qsize())
 
-    def portscan(self):
-        print_status(f"Running nmap on {self.domain}")
-        nm = nmap.PortScanner()
-        nm.scan(hosts=self.domain, arguments='-A -T4 -sV')
-        hosts_list = [(x, nm[x]['status']['state']) for x in nm.all_hosts()]
-        f = open(self.out_dir + '/nmap/' + self.domain + '.csv', "w")
-        f.write(nm.csv())
-        f.close()
+
+    def _whois(self,domains):
+        for domain in domains:
+            if len(domain) > 2:
+                try:
+                    whoisq = whois.query(domain['domain-name'].encode('idna').decode())
+                except Exception as e:
+                    if args.debug:
+                        print_error(e)
+                    pass
+                else:
+                    if whoisq.creation_date:
+                        domain['whois-created'] = str(whoisq.creation_date).split(' ')[0]
+                    if whoisq.registrar:
+                        domain['whois-registrar'] = str(whoisq.registrar)
+
 
 if __name__ == "__main__":
     main()
