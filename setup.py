@@ -47,8 +47,8 @@ setup(
             'dictionaries/subdomains-top1mil-5000.txt',
             'dictionaries/subdomains-top1mil-20000.txt',
             'dictionaries/tlds-alpha-by-domain.txt'])
-    ]
-	classifiers=[
+    ],
+	classifiers = [
         'Development Status :: 1 - Beta',
         'Environment :: Console',
         'Intended Audience :: Security Researchers',
