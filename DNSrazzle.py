@@ -181,7 +181,6 @@ def portscan(domain, out_dir):
     print_status(f"Running nmap on {domain}")
     nm = nmap.PortScanner()
     nm.scan(hosts=domain, arguments='-A -T4 -sV')
-    hosts_list = [(x, nm[x]['status']['state']) for x in nm.all_hosts()]
     f = open(out_dir + '/nmap/' + domain + '.csv' , "w")
     f.write(nm.csv())
     f.close()
