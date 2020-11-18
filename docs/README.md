@@ -1,3 +1,5 @@
+[![Language grade: Python](https://img.shields.io/lgtm/grade/python/g/f8al/DNSrazzle.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/f8al/DNSrazzle/context:python)
+
     ______  __    _ _______ ______   _______ _______ _______ ___     _______ 
     |      ||  |  | |       |    _ | |   _   |       |       |   |   |       | 
     |  _    |   |_| |  _____|   | || |  |_|  |____   |____   |   |   |    ___|
