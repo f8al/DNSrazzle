@@ -40,39 +40,116 @@ import argparse
 import os
 import dns.resolver
 from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.common.exceptions import WebDriverException
-from contrib.dnsrecon.tools.parser import print_error, print_status, print_good
 from skimage.measure import compare_ssim
 from contrib.dnsrecon import *
 import nmap
-import imutils
 import cv2
-import math
 from subprocess import PIPE, Popen
 import json
 import dnstwist
-import threading
 import queue
 from progress.bar import Bar
 import time
+from src.lib.IOUtil import *
 
 
 
 
 
+def main():
+    #
+    # Option Variables
+    #
+    os.environ['WDM_LOG_LEVEL'] = '0'
+    domain = None
 
-def banner():
-    print(
-        " ______  __    _ _______ ______   _______ _______ _______ ___     _______\n",
-        "|      ||  |  | |       |    _ | |   _   |       |       |   |   |       |\n",
-        "|  _    |   |_| |  _____|   | || |  |_|  |____   |____   |   |   |    ___|\n",
-        "| | |   |       | |_____|   |_||_|       |____|  |____|  |   |   |   |___ \n",
-        "| |_|   |  _    |_____  |    __  |       | ______| ______|   |___|    ___|\n",
-        "|       | | |   |_____| |   |  | |   _   | |_____| |_____|       |   |___ \n",
-        "|______||_|  |__|_______|___|  |_|__| |__|_______|_______|_______|_______|\n")
-    print(f"Version {__version__} by {__author__}")
+    banner()
+    #
+    # Define options
+    #
+    parser = argparse.ArgumentParser()
+    try:
+        parser.add_argument("-d", "--domain", type=str, dest="domain", help="Target domain or domain list.",
+                            required=True)
+        parser.add_argument("-f", "--file", type=str, dest="file", metavar='FILE', default=None,
+                            help="Provide a file containing a list of domains to run DNSrazzle on.")
+        parser.add_argument("-o", "--out-directory", type=str, dest="out_dir", default=None,
+                            help="Absolute path of directory to output reports to.  Will be created if doesn't exist")
+        parser.add_argument("-D", "--dictionary", type=str, dest="dictionary", metavar='FILE', default=[],
+                            help="Path to dictionary file to pass to DNSTwist to aid in domain permutation generation.")
+        parser.add_argument('-g', "--generate", dest="generate", action="store_true", default=False,
+                            help="Do a dry run of DNSRazzle and just output permutated domain names")
+        parser.add_argument('--tld', type=str, dest='tld', metavar="FILE", default=[],
+                            help='Path to TLD dictionary file.')
+        parser.add_argument('--useragent', type=str, metavar='STRING', default='Mozilla/5.0 dnsrazzle/%s' % __version__,
+                            help='User-Agent STRING to send with HTTP requests (default: Mozilla/5.0 dnsrazzle/%s)' % __version__)
+        arguments = parser.parse_args()
+
+    except KeyboardInterrupt:
+        # Handle exit() from passing --help
+        raise
+
+    out_dir = arguments.out_dir
+
+    # First, you need to put the domains to be scanned into the "domains_to_scan" variable
+    # Use case 1 -- the user supplied the -d (domain) flag
+    # Use case 2 -- the user supplied the -f (file) flag
+    if arguments.domain is not None:
+         domain_raw_list = list(set(arguments.domain.split(",")))
+    elif arguments.file is not None:
+         domain_raw_list = []
+         with open(arguments.file) as f:
+             for line in f:
+                 for item in line.split(","):
+                     domain_raw_list.append(item)
+    else:
+         print_error(f"You must specify either the -d or the -f option")
+         sys.exit(1)
+
+
+    # Everything you do depends on "out_dir" being defined, so let's just set it to cwd if we have to.
+    if not arguments.generate:
+        if out_dir is None:
+            out_dir =  os.getcwd()
+        print_status(f"Saving records to output folder {out_dir}")
+        create_folders(out_dir)
+
+
+
+    try:
+        for entry in domain_raw_list:
+            r_domain = str(entry)
+            razzle = dnsrazzle(r_domain, arguments.out_dir, arguments.tld, arguments.dictionary, arguments.file,
+                               arguments.useragent)
+
+            if arguments.generate:
+                razzle.gen(True)
+            else:
+                razzle.gen()
+                print_status(f"Performing General Enumeration of Domain: {r_domain}")
+                screenshot_domain(r_domain, out_dir + '/screenshots/originals/')
+                razzle.gendom_start()
+                while not razzle.jobs.empty():
+                    razzle.gendom_progress()
+                    time.sleep(0.5)
+                razzle.gendom_stop()
+
+                for domain in razzle.domains:
+                    check_domain(domain['domain-name'],r_domain, out_dir)
+
+
+    except dns.resolver.NXDOMAIN:
+        print_error(f"Could not resolve domain: {domain}")
+        sys.exit(1)
+
+    except dns.exception.Timeout:
+        print_error(f"A timeout error occurred please make sure you can reach the target DNS Servers")
+
+    else:
+        sys.exit(1)
+
 
 
 def compare_screenshots(imageA, imageB):
@@ -127,11 +204,8 @@ def compare_screenshots(imageA, imageB):
 def portscan(domain, out_dir):
     print_status(f"Running nmap on {domain}")
     nm = nmap.PortScanner()
-    if not os.path.isfile(out_dir+'/nmap/'):
-        create_folders(out_dir)
     nm.scan(hosts=domain, arguments='-A -T4 -sV')
     hosts_list = [(x, nm[x]['status']['state']) for x in nm.all_hosts()]
-    #print(nm.csv())
     f = open(out_dir + '/nmap/' + domain + '.csv' , "w")
     f.write(nm.csv())
     f.close()
@@ -145,7 +219,7 @@ def check_domain(t_domain,r_domain,out_dir):
     screenshot_domain(t_domain, out_dir + '/screenshots/')
     compare_screenshots(out_dir + '/screenshots/originals/' + r_domain + '.png',
                         out_dir + '/screenshots/'+ t_domain + '.png')
-    portscan(t_domain, out_dir)
+    razzle.portscan(t_domain, out_dir)
     dnsrecon(t_domain, out_dir + '/dnsrecon/')
 
 
@@ -177,7 +251,6 @@ def screenshot_domain(domain,out_dir):
 
         ss_path = str(out_dir + domain + '.png')
 
-        S = lambda X: driver.execute_script('return document.body.parentNode.scroll' + X)
         driver.set_window_size(1920,1080)  # May need manual adjustment
         driver.get_screenshot_as_file(ss_path)
         driver.quit()
@@ -285,7 +358,7 @@ class dnsrazzle():
             worker.start()
             self.threads.append(worker)
 
-        self.bar =  Bar('Processing', max=self.jobs_max)
+        self.bar =  Bar('Processing domain permutations', max=self.jobs_max)
 
 
     def gendom_stop(self):
@@ -297,100 +370,14 @@ class dnsrazzle():
     def gendom_progress(self):
         self.bar.goto(self.jobs_max - self.jobs.qsize())
 
-
-
-def main():
-    #
-    # Option Variables
-    #
-    os.environ['WDM_LOG_LEVEL'] = '0'
-    domain = None
-
-    banner()
-    #
-    # Define options
-    #
-    parser = argparse.ArgumentParser()
-    try:
-        parser.add_argument("-d", "--domain", type=str, dest="domain", help="Target domain or domain list.",
-                            required=True)
-        parser.add_argument("-f", "--file", type=str, dest="file", metavar='FILE', default=None,
-                            help="Provide a file containing a list of domains to run DNSrazzle on.")
-        parser.add_argument("-o", "--out-directory", type=str, dest="out_dir", default=None,
-                            help="Absolute path of directory to output reports to.  Will be created if doesn't exist")
-        parser.add_argument("-D", "--dictionary", type=str, dest="dictionary", metavar='FILE', default=[],
-                            help="Path to dictionary file to pass to DNSTwist to aid in domain permutation generation.")
-        parser.add_argument('-g', "--generate", dest="generate", action="store_true", default=False,
-                            help="Do a dry run of DNSRazzle and just output permutated domain names")
-        parser.add_argument('--tld', type=str, dest='tld', metavar="FILE", default=[],
-                            help='Path to TLD dictionary file.') #todo add tld dictionary processing
-        parser.add_argument('--useragent', type=str, metavar='STRING', default='Mozilla/5.0 dnsrazzle/%s' % __version__,
-                            help='User-Agent STRING to send with HTTP requests (default: Mozilla/5.0 dnsrazzle/%s)' % __version__)
-        arguments = parser.parse_args()
-
-    except KeyboardInterrupt:
-        # Handle exit() from passing --help
-        raise
-
-    out_dir = arguments.out_dir
-
-    # First, you need to put the domains to be scanned into the "domains_to_scan" variable
-    # Use case 1 -- the user supplied the -d (domain) flag
-    # Use case 2 -- the user supplied the -f (file) flag
-    if arguments.domain is not None:
-         domain_raw_list = list(set(arguments.domain.split(",")))
-    elif arguments.file is not None:
-         domain_raw_list = []
-         with open(arguments.file) as f:
-             for line in f:
-                 for item in line.split(","):
-                     domain_raw_list.append(item)       
-    else:
-         print_error(f"You must specify either the -d or the -f option")
-         sys.exit(1)
-
-
-    # Everything you do depends on "out_dir" being defined, so let's just set it to cwd if we have to.
-    if not arguments.generate:
-        if out_dir is None:
-            out_dir =  os.getcwd()
-        print_status(f"Saving records to output folder {out_dir}")
-        create_folders(out_dir)
-
-
-
-    try:
-        for entry in domain_raw_list:
-            r_domain = str(entry)
-            razzle = dnsrazzle(r_domain, arguments.out_dir, arguments.tld, arguments.dictionary, arguments.file,
-                               arguments.useragent)
-
-            if arguments.generate:
-                razzle.gen(True)
-            else:
-                razzle.gen()
-                print_status(f"Performing General Enumeration of Domain: {r_domain}")
-                screenshot_domain(r_domain, out_dir + '/screenshots/originals/')
-                razzle.gendom_start()
-                while not razzle.jobs.empty():
-                    razzle.gendom_progress()
-                    time.sleep(0.5)
-                razzle.gendom_stop()
-
-                for domain in razzle.domains:
-                    check_domain(domain['domain-name'],r_domain, out_dir)
-
-
-    except dns.resolver.NXDOMAIN:
-        print_error(f"Could not resolve domain: {domain}")
-        sys.exit(1)
-
-    except dns.exception.Timeout:
-        print_error(f"A timeout error occurred please make sure you can reach the target DNS Servers")
-
-    else:
-        sys.exit(1)
-
+    def portscan(self):
+        print_status(f"Running nmap on {self.domain}")
+        nm = nmap.PortScanner()
+        nm.scan(hosts=self.domain, arguments='-A -T4 -sV')
+        hosts_list = [(x, nm[x]['status']['state']) for x in nm.all_hosts()]
+        f = open(self.out_dir + '/nmap/' + self.domain + '.csv', "w")
+        f.write(nm.csv())
+        f.close()
 
 if __name__ == "__main__":
     main()
