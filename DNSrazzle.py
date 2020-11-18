@@ -30,7 +30,7 @@ Copyright 2020 SecurityShrimp
 '''
 
 
-__version__ = '0.0.6'
+__version__ = '0.0.8'
 __author__ = 'SecurityShrimp'
 __twitter__ = '@securityshrimp'
 
@@ -265,7 +265,6 @@ class dnsrazzle():
             worker = dnstwist.DomainThread(self.jobs)
             worker.setDaemon(True)
 
-            self.jobs = queue
             self.kill_received = False
             self.debug = False
 
@@ -351,37 +350,35 @@ def main():
          sys.exit(1)
 
 
-    razzle = dnsrazzle(arguments.domain, arguments.out_dir, arguments.tld, arguments.dictionary, arguments.file, arguments.useragent)
-
-
-    if arguments.generate:
-        razzle.gen(True)
-        sys.exit(1)
-    else:
-        razzle.gen()
-
-
     # Everything you do depends on "out_dir" being defined, so let's just set it to cwd if we have to.
-    if out_dir is None:
-        out_dir =  os.getcwd()
-    print_status(f"Saving records to output folder {out_dir}")
-    create_folders(out_dir)
+    if not arguments.generate:
+        if out_dir is None:
+            out_dir =  os.getcwd()
+        print_status(f"Saving records to output folder {out_dir}")
+        create_folders(out_dir)
 
 
 
     try:
         for entry in domain_raw_list:
             r_domain = str(entry)
-            print_status(f"Performing General Enumeration of Domain: {r_domain}")
-            screenshot_domain(r_domain, out_dir + '/screenshots/originals/')
-            razzle.gendom_start()
-            while not razzle.jobs.empty():
-                razzle.gendom_progress()
-                time.sleep(0.5)
-            razzle.gendom_stop()
+            razzle = dnsrazzle(r_domain, arguments.out_dir, arguments.tld, arguments.dictionary, arguments.file,
+                               arguments.useragent)
 
-            for domain in razzle.domains:
-                check_domain(domain['domain-name'],r_domain, out_dir)
+            if arguments.generate:
+                razzle.gen(True)
+            else:
+                razzle.gen()
+                print_status(f"Performing General Enumeration of Domain: {r_domain}")
+                screenshot_domain(r_domain, out_dir + '/screenshots/originals/')
+                razzle.gendom_start()
+                while not razzle.jobs.empty():
+                    razzle.gendom_progress()
+                    time.sleep(0.5)
+                razzle.gendom_stop()
+
+                for domain in razzle.domains:
+                    check_domain(domain['domain-name'],r_domain, out_dir)
 
 
     except dns.resolver.NXDOMAIN:
@@ -397,17 +394,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-
-
-def resolvdoms(r_domain):
-    _r = resolver()
-
-    try:
-        for i in range(len(fuzz.domains)):
-            _tmp = _r.resolve(fuzz.domains[i]['domain-name'])
-    except:
-        pass
-    else:
-        dir(_r)
