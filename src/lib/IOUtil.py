@@ -21,10 +21,27 @@ Copyright 2020 SecurityShrimp
 
 
 import os
+import sys
+import time
 
+
+'''Global Variables'''
 __version__ = '0.0.8'
 __author__ = 'SecurityShrimp'
 __twitter__ = '@securityshrimp'
+
+
+if sys.platform != 'win32' and sys.stdout.isatty():
+	FG_RND = '\x1b[3{}m'.format(int(time.time())%8+1)
+	FG_YEL = '\x1b[33m'
+	FG_CYA = '\x1b[36m'
+	FG_BLU = '\x1b[34m'
+	FG_RST = '\x1b[39m'
+	ST_BRI = '\x1b[1m'
+	ST_RST = '\x1b[0m'
+else:
+	FG_RND = FG_YEL = FG_CYA = FG_BLU = FG_RST = ST_BRI = ST_RST = ''
+
 
 def create_folders(out_dir):
     '''
@@ -59,20 +76,58 @@ def banner():
     #print(f"Version {version} by {author}")
 
 def print_status(message=""):
-    print(f"\033[1;34m[*]\033[1;m {message}")
+    print(f"\033[1;34m[*]\033[1;m {message}", flush=True)
 
 
 def print_good(message=""):
-    print(f"\033[1;32m[*]\033[1;m {message}")
+    print(f"\033[1;32m[*]\033[1;m {message}", flush=True)
 
 
 def print_error(message=""):
-    print(f"\033[1;31m[-]\033[1;m {message}")
+    print(f"\033[1;31m[-]\033[1;m {message}", flush=True)
 
 
 def print_debug(message=""):
-    print(f"\033[1;31m[!]\033[1;m {message}")
+    print(f"\033[1;31m[!]\033[1;m {message}", flush=True)
 
 
 def print_line(message=""):
-    print(f"{message}")
+    print(f"{message}", flush=True)
+
+def cli_print(domains=[]):
+    cli = []
+    width_fuzzer = max([len(x['fuzzer']) for x in domains]) + 1
+    width_domain = max([len(x['domain-name']) for x in domains]) + 1
+    for domain in domains:
+        info = []
+
+        if 'dns-a' in domain:
+            if 'geoip-country' in domain:
+                info.append(';'.join(domain['dns-a']) + FG_CYA + '/' + domain['geoip-country'].replace(' ',
+                                                                                                       '') + FG_RST)
+            else:
+                info.append(';'.join(domain['dns-a']))
+        if 'dns-aaaa' in domain:
+            info.append(';'.join(domain['dns-aaaa']))
+        if 'dns-ns' in domain:
+            info.append(FG_YEL + 'NS:' + FG_CYA + ';'.join(domain['dns-ns']) + FG_RST)
+        if 'dns-mx' in domain:
+            if 'mx-spy' in domain:
+                info.append(FG_YEL + 'SPYING-MX:' + FG_CYA + ';'.join(domain['dns-mx']) + FG_RST)
+            else:
+                info.append(FG_YEL + 'MX:' + FG_CYA + ';'.join(domain['dns-mx']) + FG_RST)
+        if 'banner-http' in domain:
+            info.append(FG_YEL + 'HTTP:' + FG_CYA + domain['banner-http'] + FG_RST)
+        if 'banner-smtp' in domain:
+            info.append(FG_YEL + 'SMTP:' + FG_CYA + domain['banner-smtp'] + FG_RST)
+        if 'whois-registrar' in domain:
+            info.append(FG_YEL + 'REGISTRAR:' + FG_CYA + domain['whois-registrar'] + FG_RST)
+        if 'whois-created' in domain:
+            info.append(FG_YEL + 'CREATED:' + FG_CYA + domain['whois-created'] + FG_RST)
+        if domain.get('ssdeep-score', 0) > 0:
+            info.append(FG_YEL + 'SSDEEP:' + str(domain['ssdeep-score']) + FG_RST)
+        if not info:
+            info = ['-']
+        cli.append(' '.join([FG_BLU + domain['fuzzer'].ljust(width_fuzzer) + FG_RST,
+                             domain['domain-name'].ljust(width_domain), ' '.join(info)]))
+    return '\n'.join(cli)
