@@ -200,16 +200,6 @@ def check_domain(t_domain,r_domain,out_dir):
 
 
 
-def write_to_file(data, out_dir, target_file):
-    """
-    Function for writing returned data to a file
-    """
-    f = open(out_dir + '/' +target_file, "w")
-    f.write(data)
-    f.close()
-
-
-
 def screenshot_domain(domain,out_dir):
     """
     function to take screenshot of supplied domain
@@ -234,20 +224,6 @@ def screenshot_domain(domain,out_dir):
         print_error(f"Unable to screenshot {domain}!")
 
 
-def create_folders(out_dir):
-    '''
-    function to create output folders at location specified with -o
-    '''
-    os.makedirs(out_dir + '/screenshots/', exist_ok=True)
-    os.makedirs(out_dir + '/screenshots/originals/', exist_ok=True)
-    os.makedirs(out_dir + '/dnsrecon/', exist_ok=True)
-    os.makedirs(out_dir + '/dnstwist/', exist_ok=True)
-    os.makedirs(out_dir + '/nmap/', exist_ok=True)
-
-def show_todo(r_domain):
-    # Create a generator
-    for key, value in cal.items():
-        yield value[0], key
 
 def twistdomain(r_domain:str,dictionary:str):
     '''
