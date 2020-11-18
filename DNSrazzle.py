@@ -35,9 +35,8 @@ __author__ = 'SecurityShrimp'
 __twitter__ = '@securityshrimp'
 
 
-import sys
 import argparse
-import os
+from os import path,getcwd
 import dns.resolver
 from selenium import webdriver
 from webdriver_manager.chrome import ChromeDriverManager
@@ -46,15 +45,12 @@ from skimage.measure import compare_ssim
 from contrib.dnsrecon import *
 import nmap
 import cv2
-from subprocess import PIPE, Popen
-import json
 import dnstwist
 import queue
 from progress.bar import Bar
 import time
 from src.lib.IOUtil import *
-
-
+import signal
 
 
 
@@ -90,6 +86,20 @@ def main():
     except KeyboardInterrupt:
         # Handle exit() from passing --help
         raise
+    def _exit(code):
+        print(FG_RST + ST_RST, end='')
+        sys.exit(code)
+
+    def signal_handler(signal, frame):
+        print(f'\nStopping threads... ', file=sys.stderr, end='', flush=True)
+        for worker in razzle.threads:
+            worker.stop()
+            worker.join()
+        print(f'Done', file=sys.stderr)
+        _exit(0)
+
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
 
     out_dir = arguments.out_dir
 
@@ -116,6 +126,21 @@ def main():
         print_status(f"Saving records to output folder {out_dir}")
         create_folders(out_dir)
 
+    dictionary = []
+    if arguments.dictionary:
+        if not path.exists(arguments.dictionary):
+            parser.error('dictionary file not found: %s' % arguments.dictionary)
+        with open(arguments.dictionary) as f:
+            dictionary = set(f.read().splitlines())
+            dictionary = [x for x in dictionary if x.isalnum()]
+
+    tld = []
+    if arguments.tld:
+        if not path.exists(arguments.tld):
+            parser.error('dictionary file not found: %s' % arguments.tld)
+        with open(arguments.tld) as f:
+            tld = set(f.read().splitlines())
+            tld = [x for x in tld if x.isalpha()]
 
 
     try:
@@ -135,6 +160,8 @@ def main():
                     razzle.gendom_progress()
                     time.sleep(0.5)
                 razzle.gendom_stop()
+
+                print(dnstwist.create_cli(razzle.domains))
 
                 for domain in razzle.domains:
                     check_domain(domain['domain-name'],r_domain, out_dir)
@@ -194,8 +221,8 @@ def check_domain(t_domain,r_domain,out_dir):
     screenshot_domain(t_domain, out_dir + '/screenshots/')
     compare_screenshots(out_dir + '/screenshots/originals/' + r_domain + '.png',
                         out_dir + '/screenshots/'+ t_domain + '.png')
-    razzle.portscan(t_domain, out_dir)
-    dnsrecon(t_domain, out_dir + '/dnsrecon/')
+    portscan(t_domain, out_dir)
+    #dnsrecon(t_domain, out_dir + '/dnsrecon/')
 
 
 
@@ -224,28 +251,6 @@ def screenshot_domain(domain,out_dir):
         print_error(f"Unable to screenshot {domain}!")
 
 
-
-def twistdomain(r_domain:str,dictionary:str):
-    '''
-    takes the value of r_domain and passes it to dnstwist as the target domain
-    :param r_domain: reference domain to be permutated with dnstwist
-    :param dictionary: dictionary file to extend dnstwist permutations
-    :return: returns a json object with permutated domains, registrars, creation date, banners, and MX records
-    '''
-    _result = dict()
-    print_status(f"Running DNSTwist permutation engine on {r_domain}!")
-    _base_cmd = ['dnstwist', '-b', '-w', '-r', '-m', '-f', 'json']
-    _dict_cmd = ['--dictionary', dictionary, r_domain]
-    if dictionary:
-        _base_cmd = _base_cmd + _dict_cmd
-    else:
-        _base_cmd.append(r_domain)
-    proc = Popen(_base_cmd, shell=False, stdin=PIPE, stdout=PIPE,stderr=PIPE)
-    stdout_value, stderr_value = proc.communicate()
-    _result = json.loads(stdout_value)
-    return _result
-
-
 def dnsrecon(t_domain, out_dir):
     print_status(f"Running DNSRecon on {t_domain}!")
     _cmd = ['python3','dnsrecon.py','-a','-s', '-y','-k','-z','-d']
@@ -270,10 +275,10 @@ class dnsrazzle():
     def gen(self, shouldPrint=False):
         fuzz = dnstwist.DomainFuzz(self.domain, self.dictionary, self.tld)
         fuzz.generate()
+        del fuzz.domains[0]
         if shouldPrint:
             for entry in fuzz.domains:
                 print(entry['domain-name'])
-
         self.domains = fuzz.domains
 
 
