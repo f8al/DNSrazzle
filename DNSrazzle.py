@@ -54,6 +54,9 @@ from subprocess import PIPE, Popen
 import json
 import dnstwist
 import threading
+import queue
+from progress.bar import Bar
+import time
 
 
 
@@ -226,14 +229,76 @@ def dnsrecon(t_domain, out_dir):
     print(_cmd)
     print(t_domain,out_dir)
 
+class dnsrazzle():
+    def __init__(self, domain, out_dir, tld, dictionary, file, useragent):
+        self.domains = []
+        self.domain = domain
+        self.out_dir = out_dir
+        self.tld = tld
+        self.dictionary = dictionary
+        self.file = file
+        self.useragent = useragent
+        self.threads = []
+        self.jobs = queue.Queue()
+        self.jobs_max = 0
 
-def gen(r_domain, dictionary, tld):
-    fuzz = dnstwist.DomainFuzz(r_domain)
-    fuzz.dictionary = dictionary
-    fuzz.tld_dictionary = tld
-    fuzz.generate()
-    for entry in fuzz.domains:
-        print(entry['domain-name'])
+
+    def gen(self, shouldPrint=False):
+        fuzz = dnstwist.DomainFuzz(self.domain, self.dictionary, self.tld)
+        fuzz.generate()
+        if shouldPrint:
+            for entry in fuzz.domains:
+                print(entry['domain-name'])
+
+        self.domains = fuzz.domains
+
+
+
+    def gendom_start(self, threadcount=10):
+        url = dnstwist.UrlParser(self.domain)
+
+        for i in range(len(self.domains)):
+            self.jobs.put(self.domains[i])
+        self.jobs_max = len(self.domains)
+
+        for _ in range(threadcount):
+            worker = dnstwist.DomainThread(self.jobs)
+            worker.setDaemon(True)
+
+            self.jobs = queue
+            self.kill_received = False
+            self.debug = False
+
+            worker.option_extdns = True
+            worker.option_geoip = False
+            worker.option_ssdeep = False
+            worker.option_banners = True
+            worker.option_mxcheck = True
+
+            worker.nameservers = []
+            self.useragent = ''
+
+            worker.uri_scheme = url.scheme
+            worker.uri_path = url.path
+            worker.uri_query = url.query
+
+            worker.domain_init = url.domain
+            worker.start()
+            self.threads.append(worker)
+
+        self.bar =  Bar('Processing', max=self.jobs_max)
+
+
+    def gendom_stop(self):
+        for worker in self.threads:
+            worker.stop()
+            worker.join()
+        self.bar.finish()
+
+    def gendom_progress(self):
+        self.bar.goto(self.jobs_max - self.jobs.qsize())
+
+
 
 def main():
     #
@@ -254,12 +319,14 @@ def main():
                             help="Provide a file containing a list of domains to run DNSrazzle on.")
         parser.add_argument("-o", "--out-directory", type=str, dest="out_dir", default=None,
                             help="Absolute path of directory to output reports to.  Will be created if doesn't exist")
-        parser.add_argument("-D", "--dictionary", type=str, dest="dictionary", metavar='FILE', default=None,
+        parser.add_argument("-D", "--dictionary", type=str, dest="dictionary", metavar='FILE', default=[],
                             help="Path to dictionary file to pass to DNSTwist to aid in domain permutation generation.")
         parser.add_argument('-g', "--generate", dest="generate", action="store_true", default=False,
                             help="Do a dry run of DNSRazzle and just output permutated domain names")
-        parser.add_argument('--tld', type=str, dest='tld', metavar="FILE", default=None,
+        parser.add_argument('--tld', type=str, dest='tld', metavar="FILE", default=[],
                             help='Path to TLD dictionary file.') #todo add tld dictionary processing
+        parser.add_argument('--useragent', type=str, metavar='STRING', default='Mozilla/5.0 dnsrazzle/%s' % __version__,
+                            help='User-Agent STRING to send with HTTP requests (default: Mozilla/5.0 dnsrazzle/%s)' % __version__)
         arguments = parser.parse_args()
 
     except KeyboardInterrupt:
@@ -283,9 +350,16 @@ def main():
          print_error(f"You must specify either the -d or the -f option")
          sys.exit(1)
 
+
+    razzle = dnsrazzle(arguments.domain, arguments.out_dir, arguments.tld, arguments.dictionary, arguments.file, arguments.useragent)
+
+
     if arguments.generate:
-        gen(arguments.domain,arguments.dictionary,arguments.tld)
+        razzle.gen(True)
         sys.exit(1)
+    else:
+        razzle.gen()
+
 
     # Everything you do depends on "out_dir" being defined, so let's just set it to cwd if we have to.
     if out_dir is None:
@@ -300,10 +374,13 @@ def main():
             r_domain = str(entry)
             print_status(f"Performing General Enumeration of Domain: {r_domain}")
             screenshot_domain(r_domain, out_dir + '/screenshots/originals/')
-            t_domain = twistdomain(r_domain,arguments.dictionary)
-            for domain in t_domain:
-                #json.dump(domain, out_dir + '/dnstwist/' + domain['domain-name'] + '.json')
-                json.dumps(domain)
+            razzle.gendom_start()
+            while not razzle.jobs.empty():
+                razzle.gendom_progress()
+                time.sleep(0.5)
+            razzle.gendom_stop()
+
+            for domain in razzle.domains:
                 check_domain(domain['domain-name'],r_domain, out_dir)
 
 
@@ -322,14 +399,6 @@ if __name__ == "__main__":
     main()
 
 
-
-class setup:
-    def __init__(self):
-        self.domain = None
-        self.out_dir = None
-        self.tld = None
-        self.dictionary = None
-        self.file = None
 
 
 def resolvdoms(r_domain):
