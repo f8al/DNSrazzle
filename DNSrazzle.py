@@ -36,7 +36,7 @@ __twitter__ = '@securityshrimp'
 
 
 import argparse
-from os import path,getcwd
+from os import path
 import dns.resolver
 from selenium import webdriver
 from webdriver_manager.chrome import ChromeDriverManager
@@ -50,6 +50,9 @@ from progress.bar import Bar
 from src.lib.IOUtil import *
 import signal
 import whois
+#import dnsrecon
+import inspect
+
 
 
 
@@ -78,8 +81,11 @@ def main():
                             help="Do a dry run of DNSRazzle and just output permutated domain names")
         parser.add_argument('--tld', type=str, dest='tld', metavar="FILE", default=[],
                             help='Path to TLD dictionary file.')
+        parser.add_argument('-t', '--threads',dest='threads', type=int, default=10,
+                            help='Number of threads to use in permutation checks, reverse lookups, forward lookups, brute force and SRV record enumeration.')
         parser.add_argument('--useragent', type=str, metavar='STRING', default='Mozilla/5.0 dnsrazzle/%s' % __version__,
                             help='User-Agent STRING to send with HTTP requests (default: Mozilla/5.0 dnsrazzle/%s)' % __version__)
+        parser.add_argument('--debug', dest='debug', action='store_true', help='Print debug messages')
         arguments = parser.parse_args()
 
     except KeyboardInterrupt:
@@ -159,11 +165,13 @@ def main():
                     razzle.gendom_progress()
                     time.sleep(0.5)
                 razzle.gendom_stop()
+                print_status(f'Running whois queries on detected domains.')
                 razzle._whois(razzle.domains)
 
 
                 print(format_domains(razzle.domains))
 
+                del razzle.domains[0]
                 for domain in razzle.domains:
                     razzle.check_domain(domain['domain-name'],entry, out_dir)
 
@@ -269,7 +277,7 @@ class DnsRazzle():
             worker.start()
             self.threads.append(worker)
 
-        self.bar =  Bar('Processing domain permutations', max=self.jobs_max)
+        self.bar =  Bar('Processing domain permutations', max=self.jobs_max - 1)
 
 
     def gendom_stop(self):
@@ -288,9 +296,8 @@ class DnsRazzle():
                 try:
                     whoisq = whois.query(domain['domain-name'].encode('idna').decode())
                 except Exception as e:
-                    if args.debug:
+                    if arguments.debug:
                         print_error(e)
-                    pass
                 else:
                     if whoisq.creation_date:
                         domain['whois-created'] = str(whoisq.creation_date).split(' ')[0]
@@ -314,7 +321,8 @@ class DnsRazzle():
         compare_screenshots(out_dir + '/screenshots/originals/' + r_domain + '.png',
                             out_dir + '/screenshots/' + domains + '.png')
         self.portscan(domains, out_dir)
-        # dnsrecon(t_domain, out_dir + '/dnsrecon/')
+
+
 
     def screenshot_domain(self, domain, out_dir):
         """
