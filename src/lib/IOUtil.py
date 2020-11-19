@@ -26,7 +26,7 @@ import time
 
 
 '''Global Variables'''
-__version__ = '0.0.8'
+__version__ = '0.0.9'
 __author__ = 'SecurityShrimp'
 __twitter__ = '@securityshrimp'
 
@@ -73,7 +73,7 @@ def banner():
         "| |_|   |  _    |_____  |    __  |       | ______| ______|   |___|    ___|\n",
         "|       | | |   |_____| |   |  | |   _   | |_____| |_____|       |   |___ \n",
         "|______||_|  |__|_______|___|  |_|__| |__|_______|_______|_______|_______|\n")
-    #print(f"Version {version} by {author}")
+    print(f"Version {__version__} by {__author__}")
 
 def print_status(message=""):
     print(f"\033[1;34m[*]\033[1;m {message}", flush=True)
