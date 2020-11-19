@@ -54,7 +54,7 @@ setup(
         'Intended Audience :: Security Researchers',
         'Intended Audience :: Security Engineers',
         'Intended Audience :: Threat Intelligence Analysts',
-        'Intended Audience :: Incident Response Analysts'
+        'Intended Audience :: Incident Response Analysts',
 		'Programming Language :: Python :: 3',
 		'License :: OSI Approved :: Apache Software License',
 		'Operating System :: OS Independent',
