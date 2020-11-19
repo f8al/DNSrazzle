@@ -30,7 +30,7 @@ Copyright 2020 SecurityShrimp
 '''
 
 
-__version__ = '0.0.8'
+__version__ = '0.0.9'
 __author__ = 'SecurityShrimp'
 __twitter__ = '@securityshrimp'
 
@@ -42,13 +42,11 @@ from selenium import webdriver
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.common.exceptions import WebDriverException
 from skimage.measure import compare_ssim
-from contrib.dnsrecon import *
 import nmap
 import cv2
 import dnstwist
 import queue
 from progress.bar import Bar
-import time
 from src.lib.IOUtil import *
 import signal
 import whois
