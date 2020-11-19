@@ -19,3 +19,4 @@ python-nmap
 argparse
 dnstwist
 progress
+dnsrecon
