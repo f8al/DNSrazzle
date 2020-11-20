@@ -50,9 +50,7 @@ from progress.bar import Bar
 from src.lib.IOUtil import *
 import signal
 import whois
-#import dnsrecon
-import inspect
-
+from dnsrecon import *
 
 
 
@@ -85,7 +83,7 @@ def main():
                             help='Number of threads to use in permutation checks, reverse lookups, forward lookups, brute force and SRV record enumeration.')
         parser.add_argument('--useragent', type=str, metavar='STRING', default='Mozilla/5.0 dnsrazzle/%s' % __version__,
                             help='User-Agent STRING to send with HTTP requests (default: Mozilla/5.0 dnsrazzle/%s)' % __version__)
-        parser.add_argument('--debug', dest='debug', action='store_true', help='Print debug messages')
+        parser.add_argument('--debug', dest='debug', action='store_true', help='Print debug messages', default=False)
         arguments = parser.parse_args()
 
     except KeyboardInterrupt:
@@ -152,7 +150,7 @@ def main():
         for entry in domain_raw_list:
             r_domain = str(entry)
             razzle = DnsRazzle(r_domain, out_dir, tld, dictionary, arguments.file,
-                               arguments.useragent)
+                               arguments.useragent, arguments.debug)
 
             if arguments.generate:
                 razzle.gen(True)
@@ -166,7 +164,7 @@ def main():
                     time.sleep(0.5)
                 razzle.gendom_stop()
                 print_status(f'Running whois queries on detected domains.')
-                razzle._whois(razzle.domains)
+                razzle._whois(razzle.domains, arguments.debug)
 
 
                 print(format_domains(razzle.domains))
@@ -223,7 +221,7 @@ def dnsrecon(t_domain, out_dir):
     print(t_domain,out_dir)
 
 class DnsRazzle():
-    def __init__(self, domain, out_dir, tld, dictionary, file, useragent):
+    def __init__(self, domain, out_dir, tld, dictionary, file, useragent, debug):
         self.domains = []
         self.domain = domain
         self.out_dir = out_dir
@@ -234,6 +232,7 @@ class DnsRazzle():
         self.threads = []
         self.jobs = queue.Queue()
         self.jobs_max = 0
+        self.debug = True
 
 
     def gen(self, shouldPrint=False):
@@ -290,13 +289,13 @@ class DnsRazzle():
         self.bar.goto(self.jobs_max - self.jobs.qsize())
 
 
-    def _whois(self, domains):
+    def _whois(self, domains, debug):
         for domain in domains:
             if len(domain) > 2:
                 try:
                     whoisq = whois.query(domain['domain-name'].encode('idna').decode())
                 except Exception as e:
-                    if arguments.debug:
+                    if debug:
                         print_error(e)
                 else:
                     if whoisq.creation_date:
@@ -349,3 +348,11 @@ class DnsRazzle():
 
 if __name__ == "__main__":
     main()
+
+    #domain='baxter.com'
+    #ns_server=[]
+    #request_timeout = 10
+    #proto = 'tcp'
+
+    #res = DnsHelper(domain, ns_server, request_timeout, proto)
+    #general_enum(res,domain,True,True,True,True,True,True,True,10)
