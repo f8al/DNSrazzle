@@ -24,11 +24,13 @@ DNSrazzle's DNS fuzzing is an automated workflow for discovering potentially mal
 DNSRazzle supports single domain names, a comma seperated list of domain names, with the -d option, or a file containing a list of domain names, 1 per line with the -f option.
 
 ## Required arguments
+
   -d DOMAIN, --domain DOMAIN   Target domain or domain list.
   OR
    -f FILE, --file FILE        Provide a file containing a list of domains to run DNSrazzle on.
 
 ## Optional arguments
+
   -h, --help                                        show this help message and exit
   
   -D FILE, --dictionary FILE                        Path to dictionary file to pass to DNSTwist to aid in domain permutation generation.
