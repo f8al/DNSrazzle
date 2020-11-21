@@ -30,7 +30,7 @@ Copyright 2020 SecurityShrimp
 '''
 
 
-__version__ = '0.0.9'
+__version__ = '0.1.0'
 __author__ = 'SecurityShrimp'
 __twitter__ = '@securityshrimp'
 
@@ -41,7 +41,7 @@ import dns.resolver
 from selenium import webdriver
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.common.exceptions import WebDriverException
-from skimage.measure import compare_ssim
+from skimage.metrics import structural_similarity
 import nmap
 import cv2
 import dnstwist
@@ -67,21 +67,25 @@ def main():
     #
     parser = argparse.ArgumentParser()
     try:
-        parser.add_argument("-d", "--domain", type=str, dest="domain", help="Target domain or domain list.",
+        parser.add_argument('-d', '--domain', type=str, dest='domain', help='Target domain or domain list.',
                             required=True)
-        parser.add_argument("-f", "--file", type=str, dest="file", metavar='FILE', default=None,
-                            help="Provide a file containing a list of domains to run DNSrazzle on.")
-        parser.add_argument("-o", "--out-directory", type=str, dest="out_dir", default=None,
-                            help="Absolute path of directory to output reports to.  Will be created if doesn't exist")
-        parser.add_argument("-D", "--dictionary", type=str, dest="dictionary", metavar='FILE', default=[],
-                            help="Path to dictionary file to pass to DNSTwist to aid in domain permutation generation.")
-        parser.add_argument('-g', "--generate", dest="generate", action="store_true", default=False,
-                            help="Do a dry run of DNSRazzle and just output permutated domain names")
-        parser.add_argument('--tld', type=str, dest='tld', metavar="FILE", default=[],
-                            help='Path to TLD dictionary file.')
-        parser.add_argument('-t', '--threads',dest='threads', type=int, default=10,
+        parser.add_argument('-D', '--dictionary', type=str, dest='dictionary', metavar='FILE', default=[],
+                            help='Path to dictionary file to pass to DNSTwist to aid in domain permutation generation.')
+        parser.add_argument('-f', '--file', type=str, dest='file', metavar='FILE', default=None,
+                            help='Provide a file containing a list of domains to run DNSrazzle on.')
+        parser.add_argument('-g', '--generate', dest='generate', action='store_true', default=False,
+                            help='Do a dry run of DNSRazzle and just output permutated domain names')
+        parser.add_argument('-n', '--nmap', dest='nmap', action='store_true',
+                            help='Perform nmap scan on discovered domains', default=False)
+        parser.add_argument('-o', '--out-directory', type=str, dest='out_dir', default=None,
+                            help='Absolute path of directory to output reports to.  Will be created if doesn\'t exist'),
+        parser.add_argument('-r', '--recon', dest = 'recon', action = 'store_true', default = False,
+                            help = 'Create dnsrecon report on discovered domains.')
+        parser.add_argument('-t', '--threads', dest='threads', type=int, default=10,
                             help='Number of threads to use in permutation checks, reverse lookups, forward lookups, brute force and SRV record enumeration.')
-        parser.add_argument('--useragent', type=str, metavar='STRING', default='Mozilla/5.0 dnsrazzle/%s' % __version__,
+        parser.add_argument('--tld', type=str, dest='tld', metavar='FILE', default=[],
+                            help='Path to TLD dictionary file.')
+        parser.add_argument('-u', '--useragent', type=str, metavar='STRING', default='Mozilla/5.0 dnsrazzle/%s' % __version__,
                             help='User-Agent STRING to send with HTTP requests (default: Mozilla/5.0 dnsrazzle/%s)' % __version__)
         parser.add_argument('--debug', dest='debug', action='store_true', help='Print debug messages', default=False)
         arguments = parser.parse_args()
@@ -105,7 +109,14 @@ def main():
     signal.signal(signal.SIGTERM, signal_handler)
 
     out_dir = arguments.out_dir
+    useragent = arguments.useragent
+    threads = arguments.threads
+    debug = arguments.debug
+    nmap = arguments.nmap
+    recon = arguments.recon
 
+    if debug:
+        os.environ['WDM_LOG_LEVEL'] = '4'
     # First, you need to put the domains to be scanned into the "domains_to_scan" variable
     # Use case 1 -- the user supplied the -d (domain) flag
     # Use case 2 -- the user supplied the -f (file) flag
@@ -127,7 +138,7 @@ def main():
         if out_dir is None:
             out_dir =  os.getcwd()
         print_status(f"Saving records to output folder {out_dir}")
-        create_folders(out_dir)
+        create_folders(out_dir, nmap, recon)
 
     dictionary = []
     if arguments.dictionary:
@@ -150,7 +161,7 @@ def main():
         for entry in domain_raw_list:
             r_domain = str(entry)
             razzle = DnsRazzle(r_domain, out_dir, tld, dictionary, arguments.file,
-                               arguments.useragent, arguments.debug)
+                               useragent, debug, threads, nmap, recon)
 
             if arguments.generate:
                 razzle.gen(True)
@@ -158,20 +169,22 @@ def main():
                 razzle.gen()
                 print_status(f"Performing General Enumeration of Domain: {r_domain}")
                 razzle.screenshot_domain(r_domain, out_dir + '/screenshots/originals/')
-                razzle.gendom_start()
+                razzle.gendom_start(useragent)
                 while not razzle.jobs.empty():
                     razzle.gendom_progress()
                     time.sleep(0.5)
                 razzle.gendom_stop()
                 print_status(f'Running whois queries on detected domains.')
-                razzle._whois(razzle.domains, arguments.debug)
+                razzle._whois(razzle.domains, debug)
 
 
                 print(format_domains(razzle.domains))
+                write_to_file(format_domains(razzle.domains),out_dir + '/discovered-domains.txt')
 
                 del razzle.domains[0]
                 for domain in razzle.domains:
-                    razzle.check_domain(domain['domain-name'],entry, out_dir)
+                    #razzle.check_domain(self, domains, r_domain, out_dir, nmap, recon, threads):
+                    razzle.check_domain(domain['domain-name'],entry, out_dir, nmap, recon, threads)
 
 
     except dns.resolver.NXDOMAIN:
@@ -197,7 +210,7 @@ def compare_screenshots(imageA, imageB):
         grayB = cv2.cvtColor(image_B, cv2.COLOR_BGR2GRAY)
         # compute the Structural Similarity Index (SSIM) between the two
         # images, ensuring that the difference image is returned
-        (score, diff) = compare_ssim(grayA, grayB, full=True)
+        (score, diff) = structural_similarity(grayA, grayB, full=True)
         #print("SSIM: {}".format(score))
         rounded_score = round(score, 2)
 
@@ -211,17 +224,8 @@ def compare_screenshots(imageA, imageB):
             print_error(f"Unable to compare screenshots.  One or more of the screenshots are missing!")
 
 
-
-
-def dnsrecon(t_domain, out_dir):
-    print_status(f"Running DNSRecon on {t_domain}!")
-    _cmd = ['python3','dnsrecon.py','-a','-s', '-y','-k','-z','-d']
-    _cmd.append(t_domain)
-    print(_cmd)
-    print(t_domain,out_dir)
-
 class DnsRazzle():
-    def __init__(self, domain, out_dir, tld, dictionary, file, useragent, debug):
+    def __init__(self, domain, out_dir, tld, dictionary, file, useragent, debug, threads, nmap, recon):
         self.domains = []
         self.domain = domain
         self.out_dir = out_dir
@@ -232,7 +236,9 @@ class DnsRazzle():
         self.threads = []
         self.jobs = queue.Queue()
         self.jobs_max = 0
-        self.debug = True
+        self.debug = False
+        self.nmap = nmap
+        self.recon = recon
 
 
     def gen(self, shouldPrint=False):
@@ -245,7 +251,7 @@ class DnsRazzle():
 
 
 
-    def gendom_start(self, threadcount=10):
+    def gendom_start(self, useragent, threadcount=10):
         url = dnstwist.UrlParser(self.domain)
 
         for i in range(len(self.domains)):
@@ -266,7 +272,7 @@ class DnsRazzle():
             worker.option_mxcheck = True
 
             worker.nameservers = []
-            self.useragent = ''
+            self.useragent = useragent
 
             worker.uri_scheme = url.scheme
             worker.uri_path = url.path
@@ -307,11 +313,25 @@ class DnsRazzle():
         print_status(f"Running nmap on {domains}")
         nm = nmap.PortScanner()
         nm.scan(hosts=domains, arguments='-A -T4 -sV')
-        f = open(self.out_dir + '/nmap/' + domains + '.csv', "w")
+        f = open(out_dir + '/nmap/' + domains + '.csv', "w")
         f.write(nm.csv())
         f.close()
 
-    def check_domain(self, domains, r_domain, out_dir):
+    def dnsrecon(self, domains, out_dir, threads):
+        '''
+        :param domain: domain to run dnsrecon on
+        :param out_dir: output directory to save records to
+        general_enum arguments : res, domain, do_axfr, do_bing, do_yandex, do_spf, do_whois, do_crt, zw, thread_num=None
+        :return:
+        '''
+        ns_server = []
+        request_timeout = 10
+        proto = 'tcp'
+        res = DnsHelper(domains, ns_server, request_timeout, proto)
+        std_records = general_enum(res, domains, False, False, False, True, False, True, True, threads)
+        write_to_file(make_csv(std_records), out_dir + '/dnsrecon/' + domains + '.txt')
+
+    def check_domain(self, domains, r_domain, out_dir, nmap, recon, threads):
         '''
         primary method for performing domain checks
         '''
@@ -319,7 +339,10 @@ class DnsRazzle():
         self.screenshot_domain(domains, out_dir + '/screenshots/')
         compare_screenshots(out_dir + '/screenshots/originals/' + r_domain + '.png',
                             out_dir + '/screenshots/' + domains + '.png')
-        self.portscan(domains, out_dir)
+        if nmap:
+            self.portscan(domains, out_dir)
+        if recon:
+            self.dnsrecon(domains, out_dir, threads)
 
 
 
@@ -348,11 +371,3 @@ class DnsRazzle():
 
 if __name__ == "__main__":
     main()
-
-    #domain='baxter.com'
-    #ns_server=[]
-    #request_timeout = 10
-    #proto = 'tcp'
-
-    #res = DnsHelper(domain, ns_server, request_timeout, proto)
-    #general_enum(res,domain,True,True,True,True,True,True,True,10)
