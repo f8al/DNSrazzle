@@ -6,7 +6,7 @@ with open("docs/README.md", "r") as fh:
 
 setup(
 	name='DNSrazzle',
-	version=DNSrazzle.__version__,
+	version='0.0.9',
     license='Apache',
 	author='SecurityShrimp',
 	author_email='@securityshrimp',
@@ -30,23 +30,24 @@ setup(
                 'tld',
                 'whois',
                 'dnspython',
-                'progress'],
+                'progress',
+                'dnsrecon'],
 	entry_points={
 		'console_scripts': ['DNSrazzle=DNSRazzle:main']
 	},
     python_requires='>=3.7',
     data_files=[
         ('/etc/DNSrazzle',[
-            'dictionaries/abused_tlds.dict',
-            'dictionaries/common_tlds.dict',
-            'dictionaries/english.dict',
-            'dictionaries/polish.dict',
-            'dictionaries/french.dict',
-            'dictionaries/namelist.dict',
-            'dictionaries/subdomains-top1mil.txt',
-            'dictionaries/subdomains-top1mil-5000.txt',
-            'dictionaries/subdomains-top1mil-20000.txt',
-            'dictionaries/tlds-alpha-by-domain.txt'])
+            './dictionaries/abused_tlds.dict',
+            './dictionaries/common_tlds.dict',
+            './dictionaries/english.dict',
+            './dictionaries/polish.dict',
+            './dictionaries/french.dict',
+            './dictionaries/namelist.txt',
+            './dictionaries/subdomains-top1mil.txt',
+            './dictionaries/subdomains-top1mil-5000.txt',
+            './dictionaries/subdomains-top1mil-20000.txt',
+            './dictionaries/tlds-alpha-by-domain.txt'])
     ],
 	classifiers = [
         'Development Status :: 1 - Beta',

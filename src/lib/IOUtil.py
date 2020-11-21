@@ -26,7 +26,7 @@ import time
 
 
 '''Global Variables'''
-__version__ = '0.0.9'
+__version__ = '0.1.0'
 __author__ = 'SecurityShrimp'
 __twitter__ = '@securityshrimp'
 
@@ -43,15 +43,16 @@ else:
 	FG_RND = FG_YEL = FG_CYA = FG_BLU = FG_RST = ST_BRI = ST_RST = ''
 
 
-def create_folders(out_dir):
+def create_folders(out_dir, nmap, recon):
     '''
     function to create output folders at location specified with -o
     '''
     os.makedirs(out_dir + '/screenshots/', exist_ok=True)
     os.makedirs(out_dir + '/screenshots/originals/', exist_ok=True)
-    os.makedirs(out_dir + '/dnsrecon/', exist_ok=True)
-    os.makedirs(out_dir + '/dnstwist/', exist_ok=True)
-    os.makedirs(out_dir + '/nmap/', exist_ok=True)
+    if recon:
+        os.makedirs(out_dir + '/dnsrecon/', exist_ok=True)
+    if nmap:
+        os.makedirs(out_dir + '/nmap/', exist_ok=True)
 
 
 def write_to_file(data, out_dir, target_file):
