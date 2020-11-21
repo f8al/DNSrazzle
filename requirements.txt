@@ -5,12 +5,12 @@ ppdeep>=20200505
 whois>=0.7
 tld>=0.9.1
 certifi>=2020.06.20
+scikit-image>=0.17.0
 netaddr
 lxml
 selenium
 webdriver-manager
 matplotlib
-scikit-image
 opencv-python-headless
 numpy
 python-nmap
