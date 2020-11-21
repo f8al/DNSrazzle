@@ -326,7 +326,7 @@ class DnsRazzle():
         '''
         ns_server = []
         request_timeout = 10
-        proto = 'tcp'
+        proto = 'udp'
         res = DnsHelper(domains, ns_server, request_timeout, proto)
         std_records = general_enum(res, domains, False, False, False, True, False, True, True, threads)
         write_to_file(make_csv(std_records), out_dir + '/dnsrecon/' + domains + '.txt')
