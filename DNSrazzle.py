@@ -241,6 +241,7 @@ class DnsRazzle():
         self.recon = recon
 
 
+
     def gen(self, shouldPrint=False):
         fuzz = dnstwist.DomainFuzz(self.domain, self.dictionary, self.tld)
         fuzz.generate()
@@ -355,7 +356,10 @@ class DnsRazzle():
             print_status(f"collecting screenshot of {domain}!")
             options = webdriver.ChromeOptions()
             options.headless = True
-            driver = webdriver.Chrome(ChromeDriverManager().install(), options=options)
+            try:
+                driver = webdriver.Chrome(ChromeDriverManager().install(), options=options)
+            except exception as E:
+                print_error(f"Unable to install/update Chrome webdriver because {E}")
             url = "http://" + str(domain).strip('[]')
             driver.get(url)
 
