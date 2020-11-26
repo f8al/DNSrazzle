@@ -33,7 +33,7 @@ DNSRazzle supports single domain names, a comma seperated list of domain names, 
 
 ## Optional arguments
 
-    ***-h***, ***--help***                                        | Show this help message and exit
+    ***-h***, ***--help***                                        | Show help message and exit
   
     ***-D FILE***, ***--dictionary FILE***                        | Path to dictionary file to pass to DNSTwist to aid in domain permutation generation.
 
