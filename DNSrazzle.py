@@ -67,8 +67,7 @@ def main():
     #
     parser = argparse.ArgumentParser()
     try:
-        parser.add_argument('-d', '--domain', type=str, dest='domain', help='Target domain or domain list.',
-                            required=True)
+        parser.add_argument('-d', '--domain', type=str, dest='domain', help='Target domain or domain list.')
         parser.add_argument('-D', '--dictionary', type=str, dest='dictionary', metavar='FILE', default=[],
                             help='Path to dictionary file to pass to DNSTwist to aid in domain permutation generation.')
         parser.add_argument('-f', '--file', type=str, dest='file', metavar='FILE', default=None,
