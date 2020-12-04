@@ -30,7 +30,7 @@ Copyright 2020 SecurityShrimp
 '''
 
 
-__version__ = '0.1.0'
+__version__ = '0.1.1'
 __author__ = 'SecurityShrimp'
 __twitter__ = '@securityshrimp'
 
@@ -125,7 +125,7 @@ def main():
          domain_raw_list = []
          with open(arguments.file) as f:
              for line in f:
-                 for item in line.split(","):
+                 for item in line.split("\n"):
                      domain_raw_list.append(item)
     else:
          print_error(f"You must specify either the -d or the -f option")

@@ -26,7 +26,7 @@ import time
 
 
 '''Global Variables'''
-__version__ = '0.1.0'
+__version__ = '0.1.1'
 __author__ = 'SecurityShrimp'
 __twitter__ = '@securityshrimp'
 
