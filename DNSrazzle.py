@@ -30,7 +30,7 @@ Copyright 2020 SecurityShrimp
 '''
 
 
-__version__ = '0.1.1'
+__version__ = '0.1.2'
 __author__ = 'SecurityShrimp'
 __twitter__ = '@securityshrimp'
 
@@ -50,7 +50,7 @@ from progress.bar import Bar
 from src.lib.IOUtil import *
 import signal
 import whois
-from dnsrecon import *
+from recondns import *
 
 
 
@@ -178,7 +178,7 @@ def main():
 
 
                 print(format_domains(razzle.domains))
-                write_to_file(format_domains(razzle.domains),out_dir + '/discovered-domains.txt')
+                write_to_file(format_domains(razzle.domains),out_dir , '/discovered-domains.txt')
 
                 del razzle.domains[0]
                 for domain in razzle.domains:
@@ -317,19 +317,20 @@ class DnsRazzle():
         f.write(nm.csv())
         f.close()
 
-    def dnsrecon(self, domains, out_dir, threads):
+    def recondns(self, domains, out_dir, threads):
         '''
         :param domain: domain to run dnsrecon on
         :param out_dir: output directory to save records to
         general_enum arguments : res, domain, do_axfr, do_bing, do_yandex, do_spf, do_whois, do_crt, zw, thread_num=None
         :return:
         '''
+        print_status(f'Running reconDNS report on {domains}!')
         ns_server = []
         request_timeout = 10
         proto = 'udp'
         res = DnsHelper(domains, ns_server, request_timeout, proto)
         std_records = general_enum(res, domains, False, False, False, True, False, True, True, threads)
-        write_to_file(make_csv(std_records), out_dir + '/dnsrecon/' + domains + '.txt')
+        write_to_file(make_csv(std_records), out_dir , '/reconDNS/' + domains + '.txt')
 
     def check_domain(self, domains, r_domain, out_dir, nmap, recon, threads):
         '''
@@ -342,7 +343,7 @@ class DnsRazzle():
         if nmap:
             self.portscan(domains, out_dir)
         if recon:
-            self.dnsrecon(domains, out_dir, threads)
+            self.recondns(domains, out_dir, threads)
 
 
 

@@ -16,4 +16,4 @@ python-nmap
 argparse
 dnstwist
 progress
-dnsrecon
+reconDNS>=0.0.3
