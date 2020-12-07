@@ -50,7 +50,7 @@ def create_folders(out_dir, nmap, recon):
     os.makedirs(out_dir + '/screenshots/', exist_ok=True)
     os.makedirs(out_dir + '/screenshots/originals/', exist_ok=True)
     if recon:
-        os.makedirs(out_dir + '/dnsrecon/', exist_ok=True)
+        os.makedirs(out_dir + '/reconDNS/', exist_ok=True)
     if nmap:
         os.makedirs(out_dir + '/nmap/', exist_ok=True)
 
