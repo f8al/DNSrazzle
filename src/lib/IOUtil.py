@@ -133,3 +133,51 @@ def format_domains(domains=[]):
         cli.append(' '.join([FG_BLU + domain['fuzzer'].ljust(width_fuzzer) + FG_RST,
                              domain['domain-name'].ljust(width_domain), ' '.join(info)]))
     return '\n'.join(cli)
+
+def make_csv(data):
+    csv_data = "Type,Name,Address,Target,Port,String\n"
+    for n in data:
+        # make sure that we are working with a dictionary.
+        if isinstance(n, dict):
+            #print(n)
+            if n['type'] in ['PTR', 'A', 'AAAA']:
+                csv_data += n["type"] + "," + n["name"] + "," + n["address"] + "\n"
+
+            elif re.search(r"NS$", n["type"]):
+                csv_data += n["type"] + "," + n["target"] + "," + n["address"] + "\n"
+
+            elif re.search(r"SOA", n["type"]):
+                csv_data += n["type"] + "," + n["mname"] + "," + n["address"] + "\n"
+
+            elif re.search(r"MX", n["type"]):
+                csv_data += n["type"] + "," + n["exchange"] + "," + n["address"] + "\n"
+
+            elif re.search(r"SPF", n["type"]):
+                if "zone_server" in n:
+                    csv_data += n["type"] + ",,,,,\'" + n["strings"] + "\'\n"
+                else:
+                    csv_data += n["type"] + ",,,,,\'" + n["strings"] + "\'\n"
+
+            elif re.search(r"TXT", n["type"]):
+                if "zone_server" in n:
+                    csv_data += n["type"] + ",,,,,\'" + n["strings"] + "\'\n"
+                else:
+                    csv_data += n["type"] + "," + n["name"] + ",,,,\'" + n["strings"] + "\'\n"
+
+            elif re.search(r"SRV", n["type"]):
+                csv_data += n["type"] + "," + n["name"] + "," + n["address"] + "," + n["target"] + "," + n["port"] + "\n"
+
+            elif re.search(r"CNAME", n["type"]):
+                if "target" not in n.keys():
+                    n["target"] = ""
+                csv_data += n["type"] + "," + n["name"] + ",," + n["target"] + ",\n"
+
+            else:
+                # Handle not common records
+                t = n["type"]
+                del n["type"]
+                record_data = "".join(["%s =%s," % (key, value) for key, value in n.items()])
+                records = [t, record_data]
+                csv_data + records[0] + ",,,,," + records[1] + "\n"
+
+    return csv_data
