@@ -49,8 +49,8 @@ import queue
 from progress.bar import Bar
 from src.lib.IOUtil import *
 import signal
-import whois
-from recondns import *
+from  whois import query
+from recondns import general_enum, DnsHelper, make_csv
 
 
 
@@ -173,16 +173,15 @@ def main():
                     razzle.gendom_progress()
                     time.sleep(0.5)
                 razzle.gendom_stop()
-                print_status(f'Running whois queries on detected domains.')
+                if debug:
+                    print_good(f"Generated domains dictionary: \n{razzle.domains}")
+            
                 razzle._whois(razzle.domains, debug)
-
-
                 print(format_domains(razzle.domains))
                 write_to_file(format_domains(razzle.domains),out_dir , '/discovered-domains.txt')
 
                 del razzle.domains[0]
                 for domain in razzle.domains:
-                    #razzle.check_domain(self, domains, r_domain, out_dir, nmap, recon, threads):
                     razzle.check_domain(domain['domain-name'],entry, out_dir, nmap, recon, threads)
 
 
@@ -296,10 +295,12 @@ class DnsRazzle():
 
 
     def _whois(self, domains, debug):
+        num_doms = len(domains)
+        pBar = Bar('Running whois queries on discovered domains', max=num_doms - 1)
         for domain in domains:
             if len(domain) > 2:
                 try:
-                    whoisq = whois.query(domain['domain-name'].encode('idna').decode())
+                    whoisq = query(domain['domain-name'].encode('idna').decode())
                 except Exception as e:
                     if debug:
                         print_error(e)
@@ -308,6 +309,8 @@ class DnsRazzle():
                         domain['whois-created'] = str(whoisq.creation_date).split(' ')[0]
                     if whoisq.registrar:
                         domain['whois-registrar'] = str(whoisq.registrar)
+            pBar.next()
+        pBar.finish()
 
     def portscan(self, domains, out_dir):
         print_status(f"Running nmap on {domains}")
