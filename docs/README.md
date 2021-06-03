@@ -20,7 +20,7 @@ DNSrazzle's DNS fuzzing is an automated workflow for discovering potentially mal
 # To-Do:
 - [x] Add compatibility instructions for Apple Silicon
 - [ ] Add support for YOLO image processing for specific site artifact discovery (IE company logos, webforms, etc)
-- [ ] add [darknet](https://github.com/pjreddie/darknet) neural network support for increasing speed of comparisons and detections and allow custom training
+- [ ] Add [darknet](https://github.com/pjreddie/darknet) neural network support for increasing speed of comparisons and detections and allow custom training
 
 # Usage
 
@@ -64,7 +64,7 @@ DNSRazzle supports single domain names, a comma seperated list of domain names, 
     
     
 ## Known Compatibility Issues
-** Because of missing dependencies on Apple Silicon, to get this working on an m1 Mac, you will need to do the following: **
+**Because of missing python dependencies on Apple Silicon, to get this working on an m1 Mac, you will need to do the following**
  * `brew install miniforge`  - install miniforge through homebrew
  * `brew install cmake` - install cmake through homebrew
  * `conda create --name py38 python=3.8` - use conda to create a python3.8 virtualenv
