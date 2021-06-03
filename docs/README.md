@@ -17,6 +17,11 @@ This tool depends on DNSTwist and nmap
 
 DNSrazzle's DNS fuzzing is an automated workflow for discovering potentially malicious domains targeting your organisation. This tool works by using dnstwists permutation engine to generating a large list of permutations based on a domain name you provide, and then checking if any of those permutations are in use. Additionally, it generates screenshots of the original domain, and the discovered web pages, and compares them using computer vision to see if they are part of an ongoing phishing attack or brand impersonation, and much more!
 
+# To-Do:
+- [x] Add compatibility instructions for Apple Silicon
+- [ ] Add support for YOLO image processing for specific site artifact discovery (IE company logos, webforms, etc)
+- [ ] add [darknet](https://github.com/pjreddie/darknet) neural network support for increasing speed of comparisons and detections and allow custom training
+
 # Usage
 
 ![DNSRazzle_usage](/docs/usage.png)
@@ -60,12 +65,12 @@ DNSRazzle supports single domain names, a comma seperated list of domain names, 
     
 ## Known Compatibility Issues
 ** Because of missing dependencies on Apple Silicon, to get this working on an m1 Mac, you will need to do the following: **
- - `brew install miniforge`  - install miniforge through homebrew
- - `brew install cmake` - install cmake through homebrew
- - `conda create --name py38 python=3.8` - use conda to create a python3.8 virtualenv
- - `conda activate -n py38` - activate the conda venv
- - `conda install numpy scikit-image` - install numpy and scikit-image through conda (NOTE: you can also get numpy directly from Apples github in their [tensorflow repo](https://github.com/apple/tensorflow_macos)
- - Compile openCV (cv2) from source, and symlink it into the conda venv site-packages directory.
- -- A good guide for this has been written by Sayak Paul, and is available from his blog [here](https://sayak.dev/install-opencv-m1/)
- -- The path to the site-packages folder is different than referenced above for a homebrew miniforge install.  The correnc path is `/opt/homebrew/Caskroom/miniforge/base/envs/py38/lib/python3.8/site-packages` assuming you named your conda venv "py38"
- - `pip3 install -r requirements.txt` -  Install the rest of the dependencies with pip 
+ * `brew install miniforge`  - install miniforge through homebrew
+ * `brew install cmake` - install cmake through homebrew
+ * `conda create --name py38 python=3.8` - use conda to create a python3.8 virtualenv
+ * `conda activate -n py38` - activate the conda venv
+ * `conda install numpy scikit-image` - install numpy and scikit-image through conda (NOTE: you can also get numpy directly from Apples github in their [tensorflow repo](https://github.com/apple/tensorflow_macos)
+ * Compile openCV (cv2) from source, and symlink it into the conda venv site-packages directory.
+   * A good guide for this has been written by [Sayak Paul](https://github.com/sayakpaul), and is available from his blog [here](https://sayak.dev/install-opencv-m1/)
+   * The path to the site-packages folder is different than referenced above for a homebrew miniforge install.  The correnc path is `/opt/homebrew/Caskroom/miniforge/base/envs/py38/lib/python3.8/site-packages` assuming you named your conda venv "py38"
+ * `pip3 install -r requirements.txt` -  Install the rest of the dependencies with pip 
