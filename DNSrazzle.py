@@ -305,6 +305,7 @@ class DnsRazzle():
                     if debug:
                         print_error(e)
                 else:
+                   if whoisq is not None:
                     if whoisq.creation_date:
                         domain['whois-created'] = str(whoisq.creation_date).split(' ')[0]
                     if whoisq.registrar:
