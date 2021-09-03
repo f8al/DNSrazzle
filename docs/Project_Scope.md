@@ -1,3 +1,14 @@
+```
+______  __    _ _______ ______   _______ _______ _______ ___     _______ 
+|      ||  |  | |       |    _ | |   _   |       |       |   |   |       | 
+|  _    |   |_| |  _____|   | || |  |_|  |____   |____   |   |   |    ___|
+| | |   |       | |_____|   |_||_|       |____|  |____|  |   |   |   |___ 
+| |_|   |  _    |_____  |    __  |       | ______| ______|   |___|    ___|
+|       | | |   |_____| |   |  | |   _   | |_____| |_____|       |   |___ 
+|______||_|  |__|_______|___|  |_|__| |__|_______|_______|_______|_______|
+```
+
+
 # Project Scope
 The scope of this project is to find and detect phishing websites and brand impersonation before it can be used maliciously by a threat actor
 
@@ -44,3 +55,7 @@ Acceptance criteria for this project being complete is that a user can use this 
 * Tool can generate reports on discovered domains
    * nmap report
    * dnsrecon style DNS report
+
+
+
+Document version 1.0 - initial scoping
