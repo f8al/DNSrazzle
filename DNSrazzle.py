@@ -115,6 +115,7 @@ def main():
     debug = arguments.debug
     nmap = arguments.nmap
     recon = arguments.recon
+    nameserver = arguments.nameserver
 
     if debug:
         os.environ['WDM_LOG_LEVEL'] = '4'
@@ -162,7 +163,7 @@ def main():
         for entry in domain_raw_list:
             r_domain = str(entry)
             razzle = DnsRazzle(r_domain, out_dir, tld, dictionary, arguments.file,
-                               useragent, debug, threads, nmap, recon)
+                               useragent, debug, threads, nmap, recon, nameserver)
 
             if arguments.generate:
                 razzle.gen(True)
@@ -178,7 +179,7 @@ def main():
                 razzle.gendom_stop()
                 if debug:
                     print_good(f"Generated domains dictionary: \n{razzle.domains}")
-
+            
                 razzle._whois(razzle.domains, debug)
                 print(format_domains(razzle.domains))
                 write_to_file(format_domains(razzle.domains),out_dir , '/discovered-domains.txt')
@@ -226,7 +227,7 @@ def compare_screenshots(imageA, imageB):
 
 
 class DnsRazzle():
-    def __init__(self, domain, out_dir, tld, dictionary, file, useragent, debug, threads, nmap, recon):
+    def __init__(self, domain, out_dir, tld, dictionary, file, useragent, debug, threads, nmap, recon, nameserver):
         self.domains = []
         self.domain = domain
         self.out_dir = out_dir
@@ -240,6 +241,7 @@ class DnsRazzle():
         self.debug = False
         self.nmap = nmap
         self.recon = recon
+        self.nameserver = nameserver
 
 
 
@@ -253,7 +255,7 @@ class DnsRazzle():
 
 
 
-    def gendom_start(self, useragent, nameserver, threadcount=10):
+    def gendom_start(self, useragent, threadcount=10):
         url = dnstwist.UrlParser(self.domain)
 
         for i in range(len(self.domains)):
