@@ -33,7 +33,7 @@ Copyright 2020 SecurityShrimp
 __version__ = '0.1.4'
 __author__ = 'SecurityShrimp'
 __twitter__ = '@securityshrimp'
-
+nameserver = '1.1.1.1'
 
 import argparse
 from os import path
@@ -115,7 +115,10 @@ def main():
     debug = arguments.debug
     nmap = arguments.nmap
     recon = arguments.recon
-    nameserver = arguments.nameserver
+    
+    if arguments.nameserver is not None:
+        global nameserver
+        nameserver = arguments.nameserver
 
     if debug:
         os.environ['WDM_LOG_LEVEL'] = '4'
@@ -163,7 +166,7 @@ def main():
         for entry in domain_raw_list:
             r_domain = str(entry)
             razzle = DnsRazzle(r_domain, out_dir, tld, dictionary, arguments.file,
-                               useragent, debug, threads, nmap, recon, nameserver)
+                               useragent, debug, threads, nmap, recon)
 
             if arguments.generate:
                 razzle.gen(True)
@@ -227,7 +230,7 @@ def compare_screenshots(imageA, imageB):
 
 
 class DnsRazzle():
-    def __init__(self, domain, out_dir, tld, dictionary, file, useragent, debug, threads, nmap, recon, nameserver):
+    def __init__(self, domain, out_dir, tld, dictionary, file, useragent, debug, threads, nmap, recon):
         self.domains = []
         self.domain = domain
         self.out_dir = out_dir
@@ -326,7 +329,7 @@ class DnsRazzle():
         f.write(nm.csv())
         f.close()
 
-    def recondns(self, domains, out_dir, nameserver, threads):
+    def recondns(self, domains, out_dir, threads):
         '''
         :param domain: domain to run dnsrecon on
         :param out_dir: output directory to save records to
