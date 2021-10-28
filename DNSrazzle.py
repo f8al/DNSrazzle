@@ -30,7 +30,7 @@ Copyright 2020 SecurityShrimp
 '''
 
 
-__version__ = '0.1.3'
+__version__ = '0.1.4'
 __author__ = 'SecurityShrimp'
 __twitter__ = '@securityshrimp'
 
@@ -76,6 +76,8 @@ def main():
                             help='Do a dry run of DNSRazzle and just output permutated domain names')
         parser.add_argument('-n', '--nmap', dest='nmap', action='store_true',
                             help='Perform nmap scan on discovered domains', default=False)
+        parser.add_argument('-N', '--ns', dest='nameserver', action='store_true',
+                            help='Specify DNS nameserver to use for DNS querries')
         parser.add_argument('-o', '--out-directory', type=str, dest='out_dir', default=None,
                             help='Absolute path of directory to output reports to.  Will be created if doesn\'t exist'),
         parser.add_argument('-r', '--recon', dest = 'recon', action = 'store_true', default = False,
@@ -99,7 +101,7 @@ def main():
     def signal_handler(signal, frame):
         print(f'\nStopping threads... ', file=sys.stderr, end='', flush=True)
         for worker in razzle.threads:
-            worker.stop()
+            #worker.stop()
             worker.join()
         print(f'Done', file=sys.stderr)
         _exit(0)
@@ -172,10 +174,11 @@ def main():
                 while not razzle.jobs.empty():
                     razzle.gendom_progress()
                     time.sleep(0.5)
+                time.sleep(15)
                 razzle.gendom_stop()
                 if debug:
                     print_good(f"Generated domains dictionary: \n{razzle.domains}")
-            
+
                 razzle._whois(razzle.domains, debug)
                 print(format_domains(razzle.domains))
                 write_to_file(format_domains(razzle.domains),out_dir , '/discovered-domains.txt')
@@ -250,7 +253,7 @@ class DnsRazzle():
 
 
 
-    def gendom_start(self, useragent, threadcount=10):
+    def gendom_start(self, useragent, nameserver, threadcount=10):
         url = dnstwist.UrlParser(self.domain)
 
         for i in range(len(self.domains)):
@@ -270,7 +273,7 @@ class DnsRazzle():
             worker.option_banners = True
             worker.option_mxcheck = True
 
-            worker.nameservers = []
+            worker.nameservers = [nameserver]
             self.useragent = useragent
 
             worker.uri_scheme = url.scheme
@@ -305,7 +308,7 @@ class DnsRazzle():
                     if debug:
                         print_error(e)
                 else:
-                   if whoisq is not None:
+                  if whoisq is not None:
                     if whoisq.creation_date:
                         domain['whois-created'] = str(whoisq.creation_date).split(' ')[0]
                     if whoisq.registrar:
@@ -321,7 +324,7 @@ class DnsRazzle():
         f.write(nm.csv())
         f.close()
 
-    def recondns(self, domains, out_dir, threads):
+    def recondns(self, domains, out_dir, nameserver, threads):
         '''
         :param domain: domain to run dnsrecon on
         :param out_dir: output directory to save records to
@@ -329,7 +332,7 @@ class DnsRazzle():
         :return:
         '''
         print_status(f'Running reconDNS report on {domains}!')
-        ns_server = []
+        ns_server = [nameserver]
         request_timeout = 10
         proto = 'udp'
         res = DnsHelper(domains, ns_server, request_timeout, proto)
