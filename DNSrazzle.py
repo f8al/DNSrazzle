@@ -189,7 +189,7 @@ def main():
 
                 del razzle.domains[0]
                 for domain in razzle.domains:
-                    razzle.check_domain(domain['domain-name'],entry, out_dir, nmap, recon, threads)
+                    razzle.check_domain(domain,entry, out_dir, nmap, recon, threads)
 
 
     except dns.resolver.NXDOMAIN:
@@ -349,13 +349,14 @@ class DnsRazzle():
         primary method for performing domain checks
         '''
 
-        self.screenshot_domain(domains, out_dir + '/screenshots/')
-        compare_screenshots(out_dir + '/screenshots/originals/' + r_domain + '.png',
-                            out_dir + '/screenshots/' + domains + '.png')
+        self.screenshot_domain(domains['domain-name'], out_dir + '/screenshots/')
+        ssid_score = compare_screenshots(out_dir + '/screenshots/originals/' + r_domain + '.png',
+                            out_dir + '/screenshots/' + domains['domain-name'] + '.png')
+        domains['ssid-score'] = ssid_score
         if nmap:
-            self.portscan(domains, out_dir)
+            self.portscan(domains['domain-name'], out_dir)
         if recon:
-            self.recondns(domains, out_dir, threads)
+            self.recondns(domains['domain-name'], out_dir, threads)
 
 
 
