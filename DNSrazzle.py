@@ -67,6 +67,8 @@ def main():
     #
     parser = argparse.ArgumentParser()
     try:
+        parser.add_argument('-b', '--blacklist', type=int, dest='bad_pct', metavar='INT', default=[],
+                            help="Generate a blacklist of domains/IP addresses of suspected impersonation domains")
         parser.add_argument('-d', '--domain', type=str, dest='domain', help='Target domain or domain list.')
         parser.add_argument('-D', '--dictionary', type=str, dest='dictionary', metavar='FILE', default=[],
                             help='Path to dictionary file to pass to DNSTwist to aid in domain permutation generation.')
