@@ -229,6 +229,7 @@ def compare_screenshots(imageA, imageB):
             print_status(f"{imageA} Is different from {imageB} with a score of {str(rounded_score)}!")
     except cv2.error as exception:
             print_error(f"Unable to compare screenshots.  One or more of the screenshots are missing!")
+            rounded_score = None
     return rounded_score
 
 class DnsRazzle():
