@@ -254,6 +254,13 @@ class DnsRazzle():
     def gen(self, shouldPrint=False):
         fuzz = dnstwist.DomainFuzz(self.domain, self.dictionary, self.tld)
         fuzz.generate()
+        if self.tld is not None:
+            for entry in fuzz.domains.copy():
+                for tld in self.tld:
+                    new_domain = ".".join(entry["domain-name"].split(".")[:-1]) + "." + tld;
+                    fuzz.domains.append({"fuzzer": 'tld-swap', "domain-name": new_domain})
+            m = getattr(fuzz, "_DomainFuzz__postprocess")
+            m()
         if shouldPrint:
             for entry in fuzz.domains[1:]:
                 print(entry['domain-name'])
