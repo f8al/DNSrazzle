@@ -67,8 +67,10 @@ def main():
     #
     parser = argparse.ArgumentParser()
     try:
-        parser.add_argument('-b', '--blacklist', type=int, dest='bad_pct', metavar='INT', default=[],
-                            help="Generate a blacklist of domains/IP addresses of suspected impersonation domains")
+        parser.add_argument('-b', '--blacklist', action="store_true", dest='blacklist', default=False,
+                             help="Generate a blacklist of domains/IP addresses of suspected impersonation domains")
+        parser.add_argument('-B', '--blacklist_pct', type=float, dest='bad_pct', metavar='PCT', default=0.9,
+                            help="Threshold for what gets put on the blacklist")
         parser.add_argument('-d', '--domain', type=str, dest='domain', help='Target domain or domain list.')
         parser.add_argument('-D', '--dictionary', type=str, dest='dictionary', metavar='FILE', default=[],
                             help='Path to dictionary file to pass to DNSTwist to aid in domain permutation generation.')
@@ -193,6 +195,14 @@ def main():
                 for domain in razzle.domains:
                     razzle.check_domain(domain,entry, out_dir, nmap, recon, threads)
 
+                if arguments.blacklist:
+                    for domain in razzle.domains:
+                        if domain['ssid-score'] >= arguments.blacklist_pct:
+                            with open("blacklist.csv", "a") as f:
+                                for field in ['dns-a', 'dns-aaaa', 'dns-ns', 'dns-mx']:
+                                    if field in domain:
+                                        for ip in domain[field]:
+                                            f.write("%s,%s" % (ip, domain['domain-name']))
 
     except dns.resolver.NXDOMAIN:
         print_error(f"Could not resolve domain: {domain}")
