@@ -30,7 +30,7 @@ Copyright 2020 SecurityShrimp
 '''
 
 
-__version__ = '0.1.4'
+__version__ = '1.0.0'
 __author__ = 'SecurityShrimp'
 __twitter__ = '@securityshrimp'
 nameserver = '1.1.1.1'
@@ -197,7 +197,7 @@ def main():
 
                 if arguments.blacklist:
                     for domain in razzle.domains:
-                        if domain['ssid-score'] >= arguments.blacklist_pct:
+                        if domain['ssim-score'] >= arguments.blacklist_pct:
                             with open("blacklist.csv", "a") as f:
                                 for field in ['dns-a', 'dns-aaaa', 'dns-ns', 'dns-mx']:
                                     if field in domain:
@@ -370,9 +370,9 @@ class DnsRazzle():
         '''
 
         self.screenshot_domain(domains['domain-name'], out_dir + '/screenshots/')
-        ssid_score = compare_screenshots(out_dir + '/screenshots/originals/' + r_domain + '.png',
+        ssim_score = compare_screenshots(out_dir + '/screenshots/originals/' + r_domain + '.png',
                             out_dir + '/screenshots/' + domains['domain-name'] + '.png')
-        domains['ssid-score'] = ssid_score
+        domains['ssim-score'] = ssim_score
         if nmap:
             self.portscan(domains['domain-name'], out_dir)
         if recon:
