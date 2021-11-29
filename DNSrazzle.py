@@ -69,7 +69,7 @@ def main():
     try:
         parser.add_argument('-b', '--blacklist', action="store_true", dest='blacklist', default=False,
                              help="Generate a blacklist of domains/IP addresses of suspected impersonation domains")
-        parser.add_argument('-B', '--blacklist_pct', type=float, dest='bad_pct', metavar='PCT', default=0.9,
+        parser.add_argument('-B', '--blacklist_pct', type=float, dest='blacklist_pct', metavar='PCT', default=0.9,
                             help="Threshold for what gets put on the blacklist")
         parser.add_argument('-d', '--domain', type=str, dest='domain', help='Target domain or domain list.')
         parser.add_argument('-D', '--dictionary', type=str, dest='dictionary', metavar='FILE', default=[],
