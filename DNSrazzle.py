@@ -197,7 +197,7 @@ def main():
 
                 if arguments.blacklist:
                     for domain in razzle.domains:
-                        if domain['ssim-score'] >= arguments.blacklist_pct:
+                        if domain['ssim-score'] is not None and domain['ssim-score'] >= arguments.blacklist_pct:
                             with open("blacklist.csv", "a") as f:
                                 for field in ['dns-a', 'dns-aaaa', 'dns-ns', 'dns-mx']:
                                     if field in domain:
