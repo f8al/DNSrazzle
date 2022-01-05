@@ -39,7 +39,6 @@ import argparse
 from os import path
 import dns.resolver
 from selenium import webdriver
-from webdriver_manager.chrome import ChromeDriverManager
 from selenium.common.exceptions import WebDriverException
 from skimage.metrics import structural_similarity
 import nmap
@@ -71,6 +70,8 @@ def main():
                              help="Generate a blacklist of domains/IP addresses of suspected impersonation domains")
         parser.add_argument('-B', '--blacklist_pct', type=float, dest='blacklist_pct', metavar='PCT', default=0.9,
                             help="Threshold for what gets put on the blacklist")
+        parser.add_argument('--browser', type=str, dest='browser', default='chrome',
+                            help='Specify browser to use with WebDriver. Default is "chrome", "firefox" is also supported.')
         parser.add_argument('-d', '--domain', type=str, dest='domain', help='Target domain or domain list.')
         parser.add_argument('-D', '--dictionary', type=str, dest='dictionary', metavar='FILE', default=[],
                             help='Path to dictionary file to pass to DNSTwist to aid in domain permutation generation.')
@@ -119,6 +120,7 @@ def main():
     debug = arguments.debug
     nmap = arguments.nmap
     recon = arguments.recon
+    browser_name = arguments.browser
     
     if arguments.nameserver is not None:
         global nameserver
@@ -170,7 +172,7 @@ def main():
         for entry in domain_raw_list:
             r_domain = str(entry)
             razzle = DnsRazzle(r_domain, out_dir, tld, dictionary, arguments.file,
-                               useragent, debug, threads, nmap, recon)
+                               useragent, debug, threads, nmap, recon, browser_name)
 
             if arguments.generate:
                 razzle.gen(True)
@@ -243,7 +245,7 @@ def compare_screenshots(imageA, imageB):
     return rounded_score
 
 class DnsRazzle():
-    def __init__(self, domain, out_dir, tld, dictionary, file, useragent, debug, threads, nmap, recon):
+    def __init__(self, domain, out_dir, tld, dictionary, file, useragent, debug, threads, nmap, recon, browser_name):
         self.domains = []
         self.domain = domain
         self.out_dir = out_dir
@@ -258,6 +260,7 @@ class DnsRazzle():
         self.nmap = nmap
         self.recon = recon
         self.nameserver = nameserver
+        self.browser_name = browser_name
 
 
 
@@ -384,16 +387,31 @@ class DnsRazzle():
         """
         function to take screenshot of supplied domain
         """
-
+        print_status(f"collecting screenshot of {domain}!")
+        url = "http://" + str(domain).strip('[]')
         try:
-            print_status(f"collecting screenshot of {domain}!")
-            options = webdriver.ChromeOptions()
-            options.headless = True
-            try:
-                driver = webdriver.Chrome(ChromeDriverManager().install(), options=options)
-            except exception as E:
-                print_error(f"Unable to install/update Chrome webdriver because {E}")
-            url = "http://" + str(domain).strip('[]')
+            if self.browser_name == 'chrome':
+                options = webdriver.ChromeOptions()
+                options.headless = True
+                try:
+                    from webdriver_manager.chrome import ChromeDriverManager
+                    driver = webdriver.Chrome(ChromeDriverManager().install(), options=options)
+                except Exception as E:
+                    print_error(f"Unable to install/update Chrome webdriver because {E}")
+
+            elif self.browser_name == 'firefox':
+                options = webdriver.FirefoxOptions()
+                options.headless = True
+                try:
+                    from webdriver_manager.firefox import GeckoDriverManager
+                    s = webdriver.firefox.service.Service(executable_path=GeckoDriverManager().install())
+                    driver = webdriver.Firefox(service=s, options=options)
+                except Exception as E:
+                    print_error(f"Unable to install/update Firefox webdriver because {E}")
+
+            else:
+                print_status(f"Unimplemented webdriver browser: {self.browser_name}")
+
             driver.get(url)
 
             ss_path = str(out_dir + domain + '.png')
