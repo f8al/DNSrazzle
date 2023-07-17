@@ -33,7 +33,7 @@ def get_webdriver(browser_name):
 
         elif browser_name == 'firefox':
             options = webdriver.FirefoxOptions()
-            # options.headless = True
+            options.headless = True
             try:
                 from webdriver_manager.firefox import GeckoDriverManager
                 s = webdriver.firefox.service.Service(executable_path=GeckoDriverManager().install())
