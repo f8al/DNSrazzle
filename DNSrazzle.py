@@ -38,19 +38,16 @@ nameserver = '1.1.1.1'
 import argparse
 from os import path
 import dns.resolver
-from selenium import webdriver
-from selenium.common.exceptions import WebDriverException
 from skimage.metrics import structural_similarity
-import nmap
 import cv2
 import dnstwist
 import queue
 from progress.bar import Bar
-from src.lib.IOUtil import *
 import signal
-from  whois import query
-from recondns import general_enum, DnsHelper, make_csv
 
+from src.lib.BrowserUtil import *
+from src.lib.IOUtil import *
+from src.lib.NetUtil import *
 
 
 def main():
@@ -120,7 +117,7 @@ def main():
     debug = arguments.debug
     nmap = arguments.nmap
     recon = arguments.recon
-    browser_name = arguments.browser
+    driver = get_webdriver(arguments.browser)
     
     if arguments.nameserver is not None:
         global nameserver
@@ -142,7 +139,6 @@ def main():
     else:
          print_error(f"You must specify either the -d or the -f option")
          sys.exit(1)
-
 
     # Everything you do depends on "out_dir" being defined, so let's just set it to cwd if we have to.
     if not arguments.generate:
@@ -167,19 +163,18 @@ def main():
             tld = set(f.read().splitlines())
             tld = [x for x in tld if x.isalpha()]
 
-
     try:
         for entry in domain_raw_list:
             r_domain = str(entry)
             razzle = DnsRazzle(r_domain, out_dir, tld, dictionary, arguments.file,
-                               useragent, debug, threads, nmap, recon, browser_name)
+                               useragent, debug, threads, nmap, recon, driver)
 
             if arguments.generate:
                 razzle.gen(True)
             else:
                 razzle.gen()
                 print_status(f"Performing General Enumeration of Domain: {r_domain}")
-                razzle.screenshot_domain(r_domain, out_dir + '/screenshots/originals/')
+                screenshot_domain(driver, r_domain, out_dir + '/screenshots/originals/')
                 razzle.gendom_start(useragent)
                 while not razzle.jobs.empty():
                     razzle.gendom_progress()
@@ -189,13 +184,14 @@ def main():
                 if debug:
                     print_good(f"Generated domains dictionary: \n{razzle.domains}")
             
-                razzle._whois(razzle.domains, debug)
+                run_whois(razzle.domains, debug)
                 print(format_domains(razzle.domains))
                 write_to_file(format_domains(razzle.domains),out_dir , '/discovered-domains.txt')
 
                 del razzle.domains[0]
                 for domain in razzle.domains:
-                    razzle.check_domain(domain,entry, out_dir, nmap, recon, threads)
+                    razzle.check_domain(domain, entry, out_dir, nmap, recon, threads)
+                quit_webdriver(driver)
 
                 if arguments.blacklist:
                     for domain in razzle.domains:
@@ -240,12 +236,15 @@ def compare_screenshots(imageA, imageB):
         elif rounded_score < .90 :
             print_status(f"{imageA} Is different from {imageB} with a score of {str(rounded_score)}!")
     except cv2.error as exception:
-            print_error(f"Unable to compare screenshots.  One or more of the screenshots are missing!")
-            rounded_score = None
+        print_error(f"Unable to compare screenshots.  One or more of the screenshots are missing!")
+        rounded_score = None
+    except ValueError as ve:
+        print_error(ve)
+        rounded_score = None
     return rounded_score
 
 class DnsRazzle():
-    def __init__(self, domain, out_dir, tld, dictionary, file, useragent, debug, threads, nmap, recon, browser_name):
+    def __init__(self, domain, out_dir, tld, dictionary, file, useragent, debug, threads, nmap, recon, driver):
         self.domains = []
         self.domain = domain
         self.out_dir = out_dir
@@ -260,9 +259,7 @@ class DnsRazzle():
         self.nmap = nmap
         self.recon = recon
         self.nameserver = nameserver
-        self.browser_name = browser_name
-
-
+        self.driver = driver
 
     def gen(self, shouldPrint=False):
         fuzz = dnstwist.DomainFuzz(self.domain, self.dictionary, self.tld)
@@ -278,8 +275,6 @@ class DnsRazzle():
             for entry in fuzz.domains[1:]:
                 print(entry['domain-name'])
         self.domains = fuzz.domains
-
-
 
     def gendom_start(self, useragent, threadcount=10):
         url = dnstwist.UrlParser(self.domain)
@@ -314,7 +309,6 @@ class DnsRazzle():
 
         self.bar =  Bar('Processing domain permutations', max=self.jobs_max - 1)
 
-
     def gendom_stop(self):
         for worker in self.threads:
             worker.stop()
@@ -324,105 +318,18 @@ class DnsRazzle():
     def gendom_progress(self):
         self.bar.goto(self.jobs_max - self.jobs.qsize())
 
-
-    def _whois(self, domains, debug):
-        num_doms = len(domains)
-        pBar = Bar('Running whois queries on discovered domains', max=num_doms - 1)
-        for domain in domains:
-            if len(domain) > 2:
-                try:
-                    whoisq = query(domain['domain-name'].encode('idna').decode())
-                except Exception as e:
-                    if debug:
-                        print_error(e)
-                else:
-                  if whoisq is not None:
-                    if whoisq.creation_date:
-                        domain['whois-created'] = str(whoisq.creation_date).split(' ')[0]
-                    if whoisq.registrar:
-                        domain['whois-registrar'] = str(whoisq.registrar)
-            pBar.next()
-        pBar.finish()
-
-    def portscan(self, domains, out_dir):
-        print_status(f"Running nmap on {domains}")
-        nm = nmap.PortScanner()
-        nm.scan(hosts=domains, arguments='-A -T4 -sV')
-        f = open(out_dir + '/nmap/' + domains + '.csv', "w")
-        f.write(nm.csv())
-        f.close()
-
-    def recondns(self, domains, out_dir, threads):
-        '''
-        :param domain: domain to run dnsrecon on
-        :param out_dir: output directory to save records to
-        general_enum arguments : res, domain, do_axfr, do_bing, do_yandex, do_spf, do_whois, do_crt, zw, thread_num=None
-        :return:
-        '''
-        print_status(f'Running reconDNS report on {domains}!')
-        ns_server = [nameserver]
-        request_timeout = 10
-        proto = 'udp'
-        res = DnsHelper(domains, ns_server, request_timeout, proto)
-        std_records = general_enum(res, domains, False, False, False, True, False, True, True, threads)
-        write_to_file(make_csv(std_records), out_dir , '/reconDNS/' + domains + '.txt')
-
     def check_domain(self, domains, r_domain, out_dir, nmap, recon, threads):
         '''
         primary method for performing domain checks
         '''
-
-        self.screenshot_domain(domains['domain-name'], out_dir + '/screenshots/')
+        screenshot_domain(self.driver, domains['domain-name'], out_dir + '/screenshots/')
         ssim_score = compare_screenshots(out_dir + '/screenshots/originals/' + r_domain + '.png',
                             out_dir + '/screenshots/' + domains['domain-name'] + '.png')
         domains['ssim-score'] = ssim_score
         if nmap:
-            self.portscan(domains['domain-name'], out_dir)
+            run_portscan(domains['domain-name'], out_dir)
         if recon:
-            self.recondns(domains['domain-name'], out_dir, threads)
-
-
-
-    def screenshot_domain(self, domain, out_dir):
-        """
-        function to take screenshot of supplied domain
-        """
-        print_status(f"collecting screenshot of {domain}!")
-        url = "http://" + str(domain).strip('[]')
-        try:
-            if self.browser_name == 'chrome':
-                options = webdriver.ChromeOptions()
-                options.headless = True
-                try:
-                    from webdriver_manager.chrome import ChromeDriverManager
-                    driver = webdriver.Chrome(ChromeDriverManager().install(), options=options)
-                except Exception as E:
-                    print_error(f"Unable to install/update Chrome webdriver because {E}")
-
-            elif self.browser_name == 'firefox':
-                options = webdriver.FirefoxOptions()
-                options.headless = True
-                try:
-                    from webdriver_manager.firefox import GeckoDriverManager
-                    s = webdriver.firefox.service.Service(executable_path=GeckoDriverManager().install())
-                    driver = webdriver.Firefox(service=s, options=options)
-                except Exception as E:
-                    print_error(f"Unable to install/update Firefox webdriver because {E}")
-
-            else:
-                print_status(f"Unimplemented webdriver browser: {self.browser_name}")
-
-            driver.get(url)
-
-            ss_path = str(out_dir + domain + '.png')
-
-            driver.set_window_size(1920, 1080)  # May need manual adjustment
-            driver.get_screenshot_as_file(ss_path)
-            driver.quit()
-            print_good(f"Screenshot for {domain} saved to {ss_path}")
-        except WebDriverException as exception:
-            print_error(f"Unable to screenshot {domain}!")
-
+            run_recondns(domains['domain-name'], nameserver, out_dir, threads)
 
 if __name__ == "__main__":
     main()
