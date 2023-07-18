@@ -35,19 +35,20 @@ __author__ = 'SecurityShrimp'
 __twitter__ = '@securityshrimp'
 nameserver = '1.1.1.1'
 
-import argparse
 from os import path
-import dns.resolver
+from progress.bar import Bar
 from skimage.metrics import structural_similarity
+
+import argparse
+import dns.resolver
 import cv2
 import dnstwist
 import queue
-from progress.bar import Bar
 import signal
 
-from src.lib.BrowserUtil import *
-from src.lib.IOUtil import *
-from src.lib.NetUtil import *
+from src.lib.BrowserUtil import screenshot_domain, get_webdriver, quit_webdriver
+from src.lib.IOUtil import banner, print_error, print_good, print_status
+from src.lib.NetUtil import run_portscan, run_recondns, run_whois
 
 
 def main():
@@ -63,10 +64,10 @@ def main():
     #
     parser = argparse.ArgumentParser()
     try:
-        parser.add_argument('-b', '--blacklist', action="store_true", dest='blacklist', default=False,
-                             help="Generate a blacklist of domains/IP addresses of suspected impersonation domains")
-        parser.add_argument('-B', '--blacklist_pct', type=float, dest='blacklist_pct', metavar='PCT', default=0.9,
-                            help="Threshold for what gets put on the blacklist")
+        parser.add_argument('-b', '--blocklist', action="store_true", dest='blocklist', default=False,
+                             help="Generate a blocklist of domains/IP addresses of suspected impersonation domains.")
+        parser.add_argument('-B', '--blocklist_pct', type=float, dest='blocklist_pct', metavar='PCT', default=0.9,
+                            help="Threshold for what gets put on the blocklist. Default is 90%.")
         parser.add_argument('--browser', type=str, dest='browser', default='chrome',
                             help='Specify browser to use with WebDriver. Default is "chrome", "firefox" is also supported.')
         parser.add_argument('-d', '--domain', type=str, dest='domain', help='Target domain or domain list.')
@@ -75,13 +76,13 @@ def main():
         parser.add_argument('-f', '--file', type=str, dest='file', metavar='FILE', default=None,
                             help='Provide a file containing a list of domains to run DNSrazzle on.')
         parser.add_argument('-g', '--generate', dest='generate', action='store_true', default=False,
-                            help='Do a dry run of DNSRazzle and just output permutated domain names')
-        parser.add_argument('-n', '--nmap', dest='nmap', action='store_true',
-                            help='Perform nmap scan on discovered domains', default=False)
+                            help='Do a dry run of DNSRazzle and just output permutated domain names.')
+        parser.add_argument('-n', '--nmap', dest='nmap', action='store_true', default=False,
+                            help='Perform nmap scan on discovered domains.')
         parser.add_argument('-N', '--ns', dest='nameserver', metavar='STRING', type=str, default='1.1.1.1',
                             help='Specify DNS nameserver to use for DNS querries')
         parser.add_argument('-o', '--out-directory', type=str, dest='out_dir', default=None,
-                            help='Absolute path of directory to output reports to.  Will be created if doesn\'t exist'),
+                            help='Absolute path of directory to output reports to.  Will be created if doesn\'t exist.'),
         parser.add_argument('-r', '--recon', dest = 'recon', action = 'store_true', default = False,
                             help = 'Create dnsrecon report on discovered domains.')
         parser.add_argument('-t', '--threads', dest='threads', type=int, default=10,
@@ -89,8 +90,8 @@ def main():
         parser.add_argument('--tld', type=str, dest='tld', metavar='FILE', default=[],
                             help='Path to TLD dictionary file.')
         parser.add_argument('-u', '--useragent', type=str, metavar='STRING', default='Mozilla/5.0 dnsrazzle/%s' % __version__,
-                            help='User-Agent STRING to send with HTTP requests (default: Mozilla/5.0 dnsrazzle/%s)' % __version__)
-        parser.add_argument('--debug', dest='debug', action='store_true', help='Print debug messages', default=False)
+                            help='User-Agent STRING to send with HTTP requests. Default is Mozilla/5.0 dnsrazzle/%s)' % __version__)
+        parser.add_argument('--debug', dest='debug', action='store_true', default=False, help='Print debug messages')
         arguments = parser.parse_args()
 
     except KeyboardInterrupt:
@@ -193,10 +194,10 @@ def main():
                     razzle.check_domain(domain, entry, out_dir, nmap, recon, threads)
                 quit_webdriver(driver)
 
-                if arguments.blacklist:
+                if arguments.blocklist:
                     for domain in razzle.domains:
-                        if domain['ssim-score'] is not None and domain['ssim-score'] >= arguments.blacklist_pct:
-                            with open("blacklist.csv", "a") as f:
+                        if domain['ssim-score'] is not None and domain['ssim-score'] >= arguments.blocklist_pct:
+                            with open("blocklist.csv", "a") as f:
                                 for field in ['dns-a', 'dns-aaaa', 'dns-ns', 'dns-mx']:
                                     if field in domain:
                                         for ip in domain[field]:
