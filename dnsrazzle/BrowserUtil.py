@@ -1,4 +1,4 @@
-from src.lib.IOUtil import *
+from .IOUtil import print_debug, print_error, print_good, print_status
 from selenium import webdriver
 from selenium.common.exceptions import WebDriverException
 
@@ -50,5 +50,5 @@ def get_webdriver(browser_name):
 def quit_webdriver(driver):
     try:
         driver.quit()
-    except e:
+    except Exception as e:
         print_error(e)
