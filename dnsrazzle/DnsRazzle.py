@@ -12,7 +12,8 @@ class DnsRazzle():
         self.dictionary = dictionary
         self.file = file
         self.useragent = useragent
-        self.threads = []
+        self.threads = threads
+        self.workers = []
         self.jobs = queue.Queue()
         self.jobs_max = 0
         self.debug = False
@@ -37,7 +38,7 @@ class DnsRazzle():
                 print(entry['domain-name'])
         self.domains = fuzz.domains
 
-    def gendom_start(self, useragent, threadcount=10):
+    def gendom_start(self, useragent):
         from dnstwist import DomainThread, UrlParser
         url = UrlParser(self.domain)
 
@@ -45,7 +46,7 @@ class DnsRazzle():
             self.jobs.put(self.domains[i])
         self.jobs_max = len(self.domains)
 
-        for _ in range(threadcount):
+        for _ in range(self.threads):
             worker = DomainThread(self.jobs)
             worker.setDaemon(True)
 
@@ -67,10 +68,10 @@ class DnsRazzle():
 
             worker.domain_init = url.domain
             worker.start()
-            self.threads.append(worker)
+            self.workers.append(worker)
 
     def gendom_stop(self):
-        for worker in self.threads:
+        for worker in self.workers:
             worker.stop()
             worker.join()
 
