@@ -35,21 +35,16 @@ __author__ = 'SecurityShrimp'
 __twitter__ = '@securityshrimp'
 nameserver = '1.1.1.1'
 
-from os import path
-from progress.bar import Bar
-from skimage.metrics import structural_similarity
-
 import argparse
 import dns.resolver
-import cv2
-import dnstwist
-import queue
+import os
 import signal
+import sys
+import time
 
-from src.lib.BrowserUtil import screenshot_domain, get_webdriver, quit_webdriver
-from src.lib.IOUtil import banner, print_error, print_good, print_status
-from src.lib.NetUtil import run_portscan, run_recondns, run_whois
-
+from dnsrazzle import BrowserUtil, IOUtil, NetUtil
+from dnsrazzle.DnsRazzle import DnsRazzle
+from dnsrazzle.IOUtil import print_error, print_good, print_status
 
 def main():
     #
@@ -58,7 +53,7 @@ def main():
     os.environ['WDM_LOG_LEVEL'] = '0'
     domain = None
 
-    banner()
+    IOUtil.banner()
     #
     # Define options
     #
@@ -98,7 +93,7 @@ def main():
         # Handle exit() from passing --help
         raise
     def _exit(code):
-        print(FG_RST + ST_RST, end='')
+        IOUtil.reset_tty()
         sys.exit(code)
 
     def signal_handler(signal, frame):
@@ -118,7 +113,7 @@ def main():
     debug = arguments.debug
     nmap = arguments.nmap
     recon = arguments.recon
-    driver = get_webdriver(arguments.browser)
+    driver = BrowserUtil.get_webdriver(arguments.browser)
     
     if arguments.nameserver is not None:
         global nameserver
@@ -146,11 +141,11 @@ def main():
         if out_dir is None:
             out_dir =  os.getcwd()
         print_status(f"Saving records to output folder {out_dir}")
-        create_folders(out_dir, nmap, recon)
+        IOUtil.create_folders(out_dir, nmap, recon)
 
     dictionary = []
     if arguments.dictionary:
-        if not path.exists(arguments.dictionary):
+        if not os.path.exists(arguments.dictionary):
             parser.error('dictionary file not found: %s' % arguments.dictionary)
         with open(arguments.dictionary) as f:
             dictionary = set(f.read().splitlines())
@@ -158,13 +153,14 @@ def main():
 
     tld = []
     if arguments.tld:
-        if not path.exists(arguments.tld):
+        if not os.path.exists(arguments.tld):
             parser.error('dictionary file not found: %s' % arguments.tld)
         with open(arguments.tld) as f:
             tld = set(f.read().splitlines())
             tld = [x for x in tld if x.isalpha()]
 
     try:
+        from progress.bar import Bar
         for entry in domain_raw_list:
             r_domain = str(entry)
             razzle = DnsRazzle(r_domain, out_dir, tld, dictionary, arguments.file,
@@ -175,24 +171,27 @@ def main():
             else:
                 razzle.gen()
                 print_status(f"Performing General Enumeration of Domain: {r_domain}")
-                screenshot_domain(driver, r_domain, out_dir + '/screenshots/originals/')
+                BrowserUtil.screenshot_domain(driver, r_domain, out_dir + '/screenshots/originals/')
                 razzle.gendom_start(useragent)
+                bar = Bar('Processing domain permutations', max=razzle.jobs_max - 1)
                 while not razzle.jobs.empty():
-                    razzle.gendom_progress()
+                    bar.goto(razzle.jobs_max - razzle.jobs.qsize())
                     time.sleep(0.5)
                 time.sleep(15)
                 razzle.gendom_stop()
+                bar.finish()
                 if debug:
                     print_good(f"Generated domains dictionary: \n{razzle.domains}")
-            
-                run_whois(razzle.domains, debug)
-                print(format_domains(razzle.domains))
-                write_to_file(format_domains(razzle.domains),out_dir , '/discovered-domains.txt')
+
+                NetUtil.run_whois(razzle.domains, debug)
+                formatted_domains = IOUtil.format_domains(razzle.domains)
+                print(formatted_domains)
+                IOUtil.write_to_file(formatted_domains, out_dir , '/discovered-domains.txt')
 
                 del razzle.domains[0]
                 for domain in razzle.domains:
                     razzle.check_domain(domain, entry, out_dir, nmap, recon, threads)
-                quit_webdriver(driver)
+                BrowserUtil.quit_webdriver(driver)
 
                 if arguments.blocklist:
                     for domain in razzle.domains:
@@ -213,124 +212,6 @@ def main():
     else:
         sys.exit(1)
 
-
-
-def compare_screenshots(imageA, imageB):
-    print_status(f"Comparing screenshot {imageA} with {imageB}.")
-    try:
-        # load the two input images
-        image_A = cv2.imread(imageA)
-        image_B = cv2.imread(imageB)
-        # convert the images to grayscale
-        grayA = cv2.cvtColor(image_A, cv2.COLOR_BGR2GRAY)
-        grayB = cv2.cvtColor(image_B, cv2.COLOR_BGR2GRAY)
-        # compute the Structural Similarity Index (SSIM) between the two
-        # images, ensuring that the difference image is returned
-        (score, diff) = structural_similarity(grayA, grayB, full=True)
-        #print("SSIM: {}".format(score))
-        rounded_score = round(score, 2)
-
-        if rounded_score == 1.00 :
-            print_status(f"{imageA} Is identical to {imageB} with a score of {str(rounded_score)}!")
-        elif rounded_score > .90 :
-            print_status(f"{imageA} Is similar to {imageB} with a score of {str(rounded_score)}!")
-        elif rounded_score < .90 :
-            print_status(f"{imageA} Is different from {imageB} with a score of {str(rounded_score)}!")
-    except cv2.error as exception:
-        print_error(f"Unable to compare screenshots.  One or more of the screenshots are missing!")
-        rounded_score = None
-    except ValueError as ve:
-        print_error(ve)
-        rounded_score = None
-    return rounded_score
-
-class DnsRazzle():
-    def __init__(self, domain, out_dir, tld, dictionary, file, useragent, debug, threads, nmap, recon, driver):
-        self.domains = []
-        self.domain = domain
-        self.out_dir = out_dir
-        self.tld = tld
-        self.dictionary = dictionary
-        self.file = file
-        self.useragent = useragent
-        self.threads = []
-        self.jobs = queue.Queue()
-        self.jobs_max = 0
-        self.debug = False
-        self.nmap = nmap
-        self.recon = recon
-        self.nameserver = nameserver
-        self.driver = driver
-
-    def gen(self, shouldPrint=False):
-        fuzz = dnstwist.DomainFuzz(self.domain, self.dictionary, self.tld)
-        fuzz.generate()
-        if self.tld is not None:
-            for entry in fuzz.domains.copy():
-                for tld in self.tld:
-                    new_domain = ".".join(entry["domain-name"].split(".")[:-1]) + "." + tld;
-                    fuzz.domains.append({"fuzzer": 'tld-swap', "domain-name": new_domain})
-            m = getattr(fuzz, "_DomainFuzz__postprocess")
-            m()
-        if shouldPrint:
-            for entry in fuzz.domains[1:]:
-                print(entry['domain-name'])
-        self.domains = fuzz.domains
-
-    def gendom_start(self, useragent, threadcount=10):
-        url = dnstwist.UrlParser(self.domain)
-
-        for i in range(len(self.domains)):
-            self.jobs.put(self.domains[i])
-        self.jobs_max = len(self.domains)
-
-        for _ in range(threadcount):
-            worker = dnstwist.DomainThread(self.jobs)
-            worker.setDaemon(True)
-
-            self.kill_received = False
-            self.debug = False
-
-            worker.option_extdns = True
-            worker.option_geoip = False
-            worker.option_ssdeep = False
-            worker.option_banners = True
-            worker.option_mxcheck = True
-
-            worker.nameservers = [nameserver]
-            self.useragent = useragent
-
-            worker.uri_scheme = url.scheme
-            worker.uri_path = url.path
-            worker.uri_query = url.query
-
-            worker.domain_init = url.domain
-            worker.start()
-            self.threads.append(worker)
-
-        self.bar =  Bar('Processing domain permutations', max=self.jobs_max - 1)
-
-    def gendom_stop(self):
-        for worker in self.threads:
-            worker.stop()
-            worker.join()
-        self.bar.finish()
-
-    def gendom_progress(self):
-        self.bar.goto(self.jobs_max - self.jobs.qsize())
-
-    def check_domain(self, domains, r_domain, out_dir, nmap, recon, threads):
-        '''
-        primary method for performing domain checks
-        '''
-        screenshot_domain(self.driver, domains['domain-name'], out_dir + '/screenshots/')
-        ssim_score = compare_screenshots(out_dir + '/screenshots/originals/' + r_domain + '.png',
-                            out_dir + '/screenshots/' + domains['domain-name'] + '.png')
-        domains['ssim-score'] = ssim_score
-        if nmap:
-            run_portscan(domains['domain-name'], out_dir)
-        if recon:
-            run_recondns(domains['domain-name'], nameserver, out_dir, threads)
 
 if __name__ == "__main__":
     main()

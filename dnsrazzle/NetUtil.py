@@ -1,9 +1,7 @@
-from src.lib.IOUtil import *
-
 def run_whois(domains, debug):
     from progress.bar import Bar
     num_doms = len(domains)
-    pBar = Bar('Running whois queries on discovered domains', max=num_doms - 1)
+    pBar = Bar('Running whois queries on discovered domains', max=num_doms)
     for domain in domains:
         if len(domain) > 2:
             try:
@@ -11,6 +9,8 @@ def run_whois(domains, debug):
                 whoisq = query(domain['domain-name'].encode('idna').decode())
             except Exception as e:
                 if debug:
+                    from IOUtil import print_error
+                    print(" foo? ")
                     print_error(e)
             else:
                 if whoisq is not None:
@@ -23,6 +23,7 @@ def run_whois(domains, debug):
 
 
 def run_portscan(domains, out_dir):
+    from IOUtil import print_status
     print_status(f"Running nmap on {domains}")
     import nmap
     nm = nmap.PortScanner()
@@ -39,7 +40,9 @@ def run_recondns(domains, nameserver, out_dir, threads):
     general_enum arguments : res, domain, do_axfr, do_bing, do_yandex, do_spf, do_whois, do_crt, zw, thread_num=None
     :return:
     '''
+    from IOUtil import print_status,  write_to_file
     print_status(f'Running reconDNS report on {domains}!')
+
     from recondns import general_enum, DnsHelper, make_csv
     ns_server = [nameserver]
     request_timeout = 10
