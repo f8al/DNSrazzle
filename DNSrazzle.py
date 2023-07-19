@@ -92,8 +92,18 @@ def main():
     except KeyboardInterrupt:
         # Handle exit() from passing --help
         raise
+
+    out_dir = arguments.out_dir
+    useragent = arguments.useragent
+    threads = arguments.threads
+    debug = arguments.debug
+    nmap = arguments.nmap
+    recon = arguments.recon
+    driver = BrowserUtil.get_webdriver(arguments.browser)
+
     def _exit(code):
         IOUtil.reset_tty()
+        BrowserUtil.quit_webdriver(driver)
         sys.exit(code)
 
     def signal_handler(signal, frame):
@@ -106,14 +116,6 @@ def main():
 
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
-
-    out_dir = arguments.out_dir
-    useragent = arguments.useragent
-    threads = arguments.threads
-    debug = arguments.debug
-    nmap = arguments.nmap
-    recon = arguments.recon
-    driver = BrowserUtil.get_webdriver(arguments.browser)
     
     if arguments.nameserver is not None:
         global nameserver
