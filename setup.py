@@ -6,10 +6,10 @@ with open("docs/README.md", "r") as fh:
 
 setup(
 	name='DNSrazzle',
-	version='0.1.3',
+	version='1.5.1',
     license='Apache',
 	author='SecurityShrimp',
-	author_email='@securityshrimp',
+	author_email='securityshrimp@proton.me',
 	description='DNS enumeration script',
 	long_description=long_description,
     long_description_content_type='text/markdown',
@@ -28,7 +28,7 @@ setup(
                 'webdriver-manager',
                 'matplotlib',
                 'tld',
-                'whois',
+                'whoisdomain',
                 'dnspython',
                 'progress',
                 'dnsrecon'],
