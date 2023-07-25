@@ -39,6 +39,7 @@ DNSRazzle supports single domain names, a comma seperated list of domain names, 
 ## Optional arguments
 
     -h, --help                                        | Show help message and exit
+    --browser                                         | specify what browser for seleium to use. Options: '(chrome|firefox)'
   
     -D FILE, --dictionary FILE                        | Path to dictionary file to pass to DNSTwist to aid in domain permutation generation.
 
@@ -64,13 +65,4 @@ DNSRazzle supports single domain names, a comma seperated list of domain names, 
     
     
 ## Known Compatibility Issues
-**Because of missing python dependencies on Apple Silicon, to get this working on an m1 Mac, you will need to do the following**
- * `brew install miniforge`  - install miniforge through homebrew
- * `brew install cmake` - install cmake through homebrew
- * `conda create --name py38 python=3.8` - use conda to create a python3.8 virtualenv
- * `conda activate -n py38` - activate the conda venv
- * `conda install numpy scikit-image` - install numpy and scikit-image through conda (NOTE: you can also get numpy directly from Apples github in their [tensorflow repo](https://github.com/apple/tensorflow_macos)
- * Compile openCV (cv2) from source, and symlink it into the conda venv site-packages directory.
-   * A good guide for this has been written by [Sayak Paul](https://github.com/sayakpaul), and is available from his blog [here](https://sayak.dev/install-opencv-m1/)
-   * The path to the site-packages folder is different than referenced above for a homebrew miniforge install.  The correct path is `/opt/homebrew/Caskroom/miniforge/base/envs/py38/lib/python3.8/site-packages` assuming you named your conda venv "py38"
- * `pip3 install -r requirements.txt` -  Install the rest of the dependencies with pip 
+As of version 1.5.0, thereare no known incompatibilities with Apple silicon. All utilized libraries now have pip installable ARM64 wheels or have compatible setup.py instruction sets
