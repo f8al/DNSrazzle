@@ -18,7 +18,6 @@ This tool depends on DNSTwist and nmap
 DNSrazzle's DNS fuzzing is an automated workflow for discovering potentially malicious domains targeting your organisation. This tool works by using dnstwists permutation engine to generating a large list of permutations based on a domain name you provide, and then checking if any of those permutations are in use. Additionally, it generates screenshots of the original domain, and the discovered web pages, and compares them using computer vision to see if they are part of an ongoing phishing attack or brand impersonation, and much more!
 
 # To-Do:
-- [x] Add compatibility instructions for Apple Silicon
 - [ ] Add support for YOLO image processing for specific site artifact discovery (IE company logos, webforms, etc)
 - [ ] Add [darknet](https://github.com/pjreddie/darknet) neural network support for increasing speed of comparisons and detections and allow custom training
 
