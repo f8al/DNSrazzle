@@ -66,7 +66,8 @@ def get_webdriver(browser_name):
             options.headless = True
             try:
                 from webdriver_manager.chrome import ChromeDriverManager
-                return webdriver.Chrome(ChromeDriverManager().install(), options=options)
+                s = webdriver.chrome.service.Service(executable_path = ChromeDriverManager().install())
+                return webdriver.Chrome(service=s, options=options)
             except Exception as E:
                 print_error(f"Unable to install/update Chrome webdriver because {E}")
 
