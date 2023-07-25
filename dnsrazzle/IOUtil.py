@@ -30,7 +30,7 @@ Copyright 2023 SecurityShrimp
 '''
 
 
-__version__ = '1.5.0'
+__version__ = '1.5.1'
 __author__ = 'SecurityShrimp'
 __twitter__ = '@securityshrimp'
 __email__ = 'securityshrimp@proton.me'
@@ -41,7 +41,7 @@ import time
 
 
 '''Global Variables'''
-nameserver = '1.1.1.1'
+
 
 if sys.platform != 'win32' and sys.stdout.isatty():
 	FG_RND = '\x1b[3{}m'.format(int(time.time())%8+1)

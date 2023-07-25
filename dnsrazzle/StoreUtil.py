@@ -30,10 +30,10 @@ Copyright 2023 SecurityShrimp
 '''
 
 
-__version__ = '1.5.0'
+__version__ = '1.5.1'
 __author__ = 'SecurityShrimp'
 __twitter__ = '@securityshrimp'
-nameserver = '1.1.1.1'
+__email__ = 'securityshrimp@proton.me'
 
 import sqlite3
 import json
@@ -41,6 +41,7 @@ import re
 
 """
 this file contains all of the methods for writing output to disk in a variety of ways.
+"""
 
 def create_db(db):
     """

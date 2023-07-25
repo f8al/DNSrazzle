@@ -30,7 +30,7 @@ Copyright 2023 SecurityShrimp
 '''
 
 
-__version__ = '1.5.0'
+__version__ = '1.5.1'
 __author__ = 'SecurityShrimp'
 __twitter__ = '@securityshrimp'
 __email__ = 'securityshrimp@proton.me'

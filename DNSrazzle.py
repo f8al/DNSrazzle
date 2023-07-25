@@ -30,10 +30,11 @@ Copyright 2020 SecurityShrimp
 '''
 
 
-__version__ = '1.0.0'
+__version__ = '1.5.1'
 __author__ = 'SecurityShrimp'
 __twitter__ = '@securityshrimp'
-nameserver = '1.1.1.1'
+__email__ = 'securityshrimp@proton.me'
+
 
 import argparse
 import dns.resolver
@@ -51,6 +52,7 @@ def main():
     # Option Variables
     #
     os.environ['WDM_LOG_LEVEL'] = '0'
+    nameserver = '1.1.1.1'
     domain = None
 
     IOUtil.banner()
