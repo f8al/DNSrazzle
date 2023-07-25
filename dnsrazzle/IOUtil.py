@@ -1,4 +1,4 @@
-#!/bin/env python3
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 '''
@@ -10,8 +10,6 @@
 |       | | |   |_____| |   |  | |   _   | |_____| |_____|       |   |___
 |______||_|  |__|_______|___|  |_|__| |__|_______|_______|_______|_______|
 
-
-DNSrazzle input/output library
 
 Generate, resolve, and compare domain variations to detect typosquatting,
 phishing, and brand impersonation
@@ -35,9 +33,7 @@ Copyright 2023 SecurityShrimp
 __version__ = '1.5.0'
 __author__ = 'SecurityShrimp'
 __twitter__ = '@securityshrimp'
-nameserver = '1.1.1.1'
-
-
+__email__ = 'securityshrimp@proton.me'
 
 import os
 import sys
@@ -45,10 +41,7 @@ import time
 
 
 '''Global Variables'''
-__version__ = '1.5.0'
-__author__ = 'SecurityShrimp'
-__twitter__ = '@securityshrimp'
-
+nameserver = '1.1.1.1'
 
 if sys.platform != 'win32' and sys.stdout.isatty():
 	FG_RND = '\x1b[3{}m'.format(int(time.time())%8+1)
