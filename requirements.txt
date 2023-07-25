@@ -17,3 +17,4 @@ argparse
 dnstwist==20201228
 progress
 reconDNS>=0.0.3
+whoisdomain
