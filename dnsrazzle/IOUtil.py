@@ -1,10 +1,21 @@
+# -*- coding: utf-8 -*-
+
 '''
+ ______  __    _ _______ ______   _______ _______ _______ ___     _______
+|      ||  |  | |       |    _ | |   _   |       |       |   |   |       |
+|  _    |   |_| |  _____|   | || |  |_|  |____   |____   |   |   |    ___|
+| | |   |       | |_____|   |_||_|       |____|  |____|  |   |   |   |___
+| |_|   |  _    |_____  |    __  |       | ______| ______|   |___|    ___|
+|       | | |   |_____| |   |  | |   _   | |_____| |_____|       |   |___
+|______||_|  |__|_______|___|  |_|__| |__|_______|_______|_______|_______|
+
+
 DNSrazzle input/output library
 
 Generate, resolve, and compare domain variations to detect typosquatting,
 phishing, and brand impersonation
 
-Copyright 2020 SecurityShrimp
+Copyright 2023 SecurityShrimp
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -20,13 +31,20 @@ Copyright 2020 SecurityShrimp
 '''
 
 
+__version__ = '1.5.0'
+__author__ = 'SecurityShrimp'
+__twitter__ = '@securityshrimp'
+nameserver = '1.1.1.1'
+
+
+
 import os
 import sys
 import time
 
 
 '''Global Variables'''
-__version__ = '1.0.0'
+__version__ = '1.5.0'
 __author__ = 'SecurityShrimp'
 __twitter__ = '@securityshrimp'
 
