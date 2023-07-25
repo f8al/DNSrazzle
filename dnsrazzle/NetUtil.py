@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+r#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 '''
@@ -43,7 +43,7 @@ def run_whois(domains, debug):
     for domain in domains:
         if len(domain) > 2:
             try:
-                from whois import query
+                from whoisdomain import query
                 whoisq = query(domain['domain-name'].encode('idna').decode())
             except Exception as e:
                 if debug:
