@@ -77,7 +77,7 @@ def main():
         parser.add_argument('-n', '--nmap', dest='nmap', action='store_true', default=False,
                             help='Perform nmap scan on discovered domains.')
         parser.add_argument('-N', '--ns', dest='nameserver', metavar='STRING', type=str, default='1.1.1.1',
-                            help='Specify DNS nameserver to use for DNS querries')
+                            help='Specify DNS nameserver to use for DNS queries')
         parser.add_argument('-o', '--out-directory', type=str, dest='out_dir', default=None,
                             help='Absolute path of directory to output reports to.  Will be created if doesn\'t exist.'),
         parser.add_argument('-r', '--recon', dest = 'recon', action = 'store_true', default = False,
@@ -99,6 +99,7 @@ def main():
     useragent = arguments.useragent
     threads = arguments.threads
     debug = arguments.debug
+    nameserver = arguments.nameserver
     nmap = arguments.nmap
     recon = arguments.recon
     driver = BrowserUtil.get_webdriver(arguments.browser)
@@ -119,10 +120,6 @@ def main():
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
     
-    if arguments.nameserver is not None:
-        global nameserver
-        nameserver = arguments.nameserver
-
     if debug:
         os.environ['WDM_LOG_LEVEL'] = '4'
     # First, you need to put the domains to be scanned into the "domains_to_scan" variable
@@ -187,7 +184,7 @@ def main():
                 if debug:
                     print_good(f"Generated domains dictionary: \n{razzle.domains}")
 
-                NetUtil.run_whois(razzle.domains, debug)
+                NetUtil.run_whois(razzle.domains, nameserver, debug)
                 formatted_domains = IOUtil.format_domains(razzle.domains)
                 print(formatted_domains)
                 IOUtil.write_to_file(formatted_domains, out_dir , '/discovered-domains.txt')

@@ -1,4 +1,4 @@
-r#!/usr/bin/env python3
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 '''
@@ -36,7 +36,7 @@ __twitter__ = '@securityshrimp'
 __email__ = 'securityshrimp@proton.me'
 
 
-def run_whois(domains, debug):
+def run_whois(domains, nameserver, debug):
     from progress.bar import Bar
     num_doms = len(domains)
     pBar = Bar('Running whois queries on discovered domains', max=num_doms)
@@ -44,7 +44,7 @@ def run_whois(domains, debug):
         if len(domain) > 2:
             try:
                 from whoisdomain import query
-                whoisq = query(domain['domain-name'].encode('idna').decode())
+                whoisq = query(domain=domain['domain-name'].encode('idna').decode(), server=nameserver)
             except Exception as e:
                 if debug:
                     from IOUtil import print_error

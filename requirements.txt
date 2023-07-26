@@ -1,7 +1,6 @@
 dnspython>=1.14.0
 requests>=2.20.0
 ppdeep>=20200505
-whois>=0.7
 tld>=0.9.1
 certifi>=2020.06.20
 scikit-image>=0.17.0
@@ -14,7 +13,7 @@ opencv-python-headless
 numpy
 python-nmap
 argparse
-dnstwist==20201228
+dnstwist
 progress
 reconDNS>=0.0.3
 whoisdomain
