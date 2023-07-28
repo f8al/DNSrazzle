@@ -99,6 +99,7 @@ def main():
     useragent = arguments.useragent
     threads = arguments.threads
     debug = arguments.debug
+    justPrintDomains = arguments.generate
     nameserver = arguments.nameserver
     nmap = arguments.nmap
     recon = arguments.recon
@@ -111,8 +112,8 @@ def main():
 
     def signal_handler(signal, frame):
         print(f'\nStopping threads... ', file=sys.stderr, end='', flush=True)
-        for worker in razzle.threads:
-            #worker.stop()
+        for worker in razzle.workers:
+            worker.stop()
             worker.join()
         print(f'Done', file=sys.stderr)
         _exit(0)
@@ -164,44 +165,43 @@ def main():
         from progress.bar import Bar
         for entry in domain_raw_list:
             r_domain = str(entry)
-            razzle = DnsRazzle(r_domain, out_dir, tld, dictionary, arguments.file,
-                               useragent, debug, threads, nmap, recon, driver)
+            razzle = DnsRazzle(domain=r_domain, out_dir=out_dir, tld=tld, dictionary=dictionary, file=arguments.file,
+                               useragent=useragent, debug=debug, threads=threads, nmap=nmap, recon=recon, driver=driver,
+                               nameserver=nameserver)
+            razzle.generate_fuzzed_domains()
+            if justPrintDomains:
+                for entry in razzle.domains[1:]:
+                    print(entry['domain-name'])
+                return
 
-            if arguments.generate:
-                razzle.gen(True)
-            else:
-                razzle.gen()
-                print_status(f"Performing General Enumeration of Domain: {r_domain}")
-                BrowserUtil.screenshot_domain(driver, r_domain, out_dir + '/screenshots/originals/')
-                razzle.gendom_start(useragent)
-                bar = Bar('Processing domain permutations', max=razzle.jobs_max - 1)
-                while not razzle.jobs.empty():
-                    bar.goto(razzle.jobs_max - razzle.jobs.qsize())
-                    time.sleep(0.5)
-                time.sleep(15)
-                razzle.gendom_stop()
-                bar.finish()
-                if debug:
-                    print_good(f"Generated domains dictionary: \n{razzle.domains}")
+            print_status(f"Performing General Enumeration of Domain: {r_domain}")
+            razzle.gendom_start()
+            bar = Bar('Processing domain permutations', max=razzle.jobs_max - 1)
+            while not razzle.jobs.empty():
+                bar.goto(razzle.jobs_max - razzle.jobs.qsize())
+                time.sleep(0.5)
 
-                NetUtil.run_whois(razzle.domains, nameserver, debug)
-                formatted_domains = IOUtil.format_domains(razzle.domains)
-                print(formatted_domains)
-                IOUtil.write_to_file(formatted_domains, out_dir , '/discovered-domains.txt')
+            razzle.gendom_stop()
+            bar.finish()
+            if debug:
+                print_good(f"Generated domains dictionary: \n{razzle.domains}")
 
-                del razzle.domains[0]
+            razzle.whois()
+            formatted_domains = IOUtil.format_domains(razzle.domains)
+            print(formatted_domains)
+            IOUtil.write_to_file(formatted_domains, out_dir , '/discovered-domains.txt')
+
+            razzle.check_domains()
+            BrowserUtil.quit_webdriver(driver)
+
+            if arguments.blocklist:
                 for domain in razzle.domains:
-                    razzle.check_domain(domain, entry, out_dir, nmap, recon, threads)
-                BrowserUtil.quit_webdriver(driver)
-
-                if arguments.blocklist:
-                    for domain in razzle.domains:
-                        if domain['ssim-score'] is not None and domain['ssim-score'] >= arguments.blocklist_pct:
-                            with open("blocklist.csv", "a") as f:
-                                for field in ['dns-a', 'dns-aaaa', 'dns-ns', 'dns-mx']:
-                                    if field in domain:
-                                        for ip in domain[field]:
-                                            f.write("%s,%s" % (ip, domain['domain-name']))
+                    if domain['ssim-score'] is not None and domain['ssim-score'] >= arguments.blocklist_pct:
+                        with open("blocklist.csv", "a") as f:
+                            for field in ['dns-a', 'dns-aaaa', 'dns-ns', 'dns-mx']:
+                                if field in domain:
+                                    for ip in domain[field]:
+                                        f.write("%s,%s" % (ip, domain['domain-name']))
 
     except dns.resolver.NXDOMAIN:
         print_error(f"Could not resolve domain: {domain}")

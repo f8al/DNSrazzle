@@ -36,7 +36,7 @@ __twitter__ = '@securityshrimp'
 __email__ = 'securityshrimp@proton.me'
 
 from .BrowserUtil import screenshot_domain
-from .NetUtil import run_portscan, run_recondns
+from .NetUtil import run_portscan, run_recondns, run_whois
 from .VisionUtil import compare_screenshots
 import queue
 
@@ -53,13 +53,13 @@ class DnsRazzle():
         self.workers = []
         self.jobs = queue.Queue()
         self.jobs_max = 0
-        self.debug = False
+        self.debug = debug
         self.nmap = nmap
         self.recon = recon
         self.nameserver = nameserver
         self.driver = driver
 
-    def gen(self, shouldPrint=False):
+    def generate_fuzzed_domains(self):
         from dnstwist import DomainFuzz
         fuzz = DomainFuzz(self.domain, self.dictionary, self.tld)
         fuzz.generate()
@@ -70,12 +70,12 @@ class DnsRazzle():
                     fuzz.domains.append({"fuzzer": 'tld-swap', "domain-name": new_domain})
             m = getattr(fuzz, "_DomainFuzz__postprocess")
             m()
-        if shouldPrint:
-            for entry in fuzz.domains[1:]:
-                print(entry['domain-name'])
         self.domains = fuzz.domains
 
-    def gendom_start(self, useragent):
+    def whois(self):
+        run_whois(self.domains, self.nameserver, self.debug)
+
+    def gendom_start(self):
         from dnstwist import DomainThread, UrlParser
         url = UrlParser(self.domain)
 
@@ -97,7 +97,6 @@ class DnsRazzle():
             worker.option_mxcheck = True
 
             worker.nameservers = [self.nameserver]
-            self.useragent = useragent
 
             worker.uri_scheme = url.scheme
             worker.uri_path = url.path
@@ -109,18 +108,21 @@ class DnsRazzle():
 
     def gendom_stop(self):
         for worker in self.workers:
-            worker.stop()
             worker.join()
 
-    def check_domain(self, domains, r_domain, out_dir, nmap, recon, threads):
-        '''
-        primary method for performing domain checks
-        '''
-        screenshot_domain(self.driver, domains['domain-name'], out_dir + '/screenshots/')
-        ssim_score = compare_screenshots(out_dir + '/screenshots/originals/' + r_domain + '.png',
-                            out_dir + '/screenshots/' + domains['domain-name'] + '.png')
-        domains['ssim-score'] = ssim_score
-        if nmap:
-            run_portscan(domains['domain-name'], out_dir)
-        if recon:
-            run_recondns(domains['domain-name'], self.nameserver, out_dir, threads)
+    def check_domains(self):
+        screenshot_domain(self.driver, self.domain, self.out_dir + '/screenshots/originals/')
+        for d in self.domains:
+            if d['domain-name'] != self.domain:
+                self.check_domain(d)
+
+    def check_domain(self, domain_entry):
+        screenshot_domain(self.driver, domain_entry['domain-name'], self.out_dir + '/screenshots/')
+        # TODO catch error and skip comparison
+        ssim_score = compare_screenshots(self.out_dir + '/screenshots/originals/' + self.domain + '.png',
+                            self.out_dir + '/screenshots/' + domain_entry['domain-name'] + '.png')
+        domain_entry['ssim-score'] = ssim_score
+        if self.nmap:
+            run_portscan(domain_entry['domain-name'], self.out_dir)
+        if self.recon:
+            run_recondns(domain_entry['domain-name'], self.nameserver, self.out_dir, self.threads)
