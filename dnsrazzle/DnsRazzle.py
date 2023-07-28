@@ -117,11 +117,11 @@ class DnsRazzle():
                 self.check_domain(d)
 
     def check_domain(self, domain_entry):
-        screenshot_domain(self.driver, domain_entry['domain-name'], self.out_dir + '/screenshots/')
-        # TODO catch error and skip comparison
-        ssim_score = compare_screenshots(self.out_dir + '/screenshots/originals/' + self.domain + '.png',
+        success = screenshot_domain(self.driver, domain_entry['domain-name'], self.out_dir + '/screenshots/')
+        if success:
+            ssim_score = compare_screenshots(self.out_dir + '/screenshots/originals/' + self.domain + '.png',
                             self.out_dir + '/screenshots/' + domain_entry['domain-name'] + '.png')
-        domain_entry['ssim-score'] = ssim_score
+            domain_entry['ssim-score'] = ssim_score
         if self.nmap:
             run_portscan(domain_entry['domain-name'], self.out_dir)
         if self.recon:
