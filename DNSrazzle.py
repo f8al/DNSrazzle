@@ -103,7 +103,7 @@ def main():
     nameserver = arguments.nameserver
     nmap = arguments.nmap
     recon = arguments.recon
-    driver = BrowserUtil.get_webdriver(arguments.browser)
+    driver = None
 
     def _exit(code):
         IOUtil.reset_tty()
@@ -163,6 +163,8 @@ def main():
 
     try:
         from progress.bar import Bar
+        driver = BrowserUtil.get_webdriver(arguments.browser)
+
         for entry in domain_raw_list:
             r_domain = str(entry)
             razzle = DnsRazzle(domain=r_domain, out_dir=out_dir, tld=tld, dictionary=dictionary, file=arguments.file,
@@ -182,6 +184,7 @@ def main():
                 time.sleep(0.5)
 
             razzle.gendom_stop()
+            bar.goto(razzle.jobs_max)
             bar.finish()
             if debug:
                 print_good(f"Generated domains dictionary: \n{razzle.domains}")

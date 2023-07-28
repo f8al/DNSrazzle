@@ -90,6 +90,8 @@ def get_webdriver(browser_name):
 
 
 def quit_webdriver(driver):
+    if driver is None:
+        return
     try:
         driver.quit()
     except Exception as e:
