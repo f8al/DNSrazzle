@@ -36,11 +36,23 @@ __twitter__ = '@securityshrimp'
 __email__ = 'securityshrimp@proton.me'
 
 import cv2
-from .IOUtil import print_error, print_status
+from .IOUtil import print_error
 from skimage.metrics import structural_similarity
+from pathlib import Path
 
-def compare_screenshots(imageA, imageB):
-    print_status(f"Comparing screenshot {imageA} with {imageB}.")
+def compare_screenshots(imageA, imageB, progress_callback=None):
+    siteA = Path(imageA)
+    siteB = Path(imageB)
+    missing_file = False
+    if not siteA.is_file():
+        print_error(f"Missing file: {siteA}")
+        missing_file = True
+    if not siteB.is_file():
+        print_error(f"Missing file: {siteB}")
+        missing_file = True
+    if missing_file:
+        return None
+
     try:
         # load the two input images
         image_A = cv2.imread(imageA)
@@ -51,19 +63,20 @@ def compare_screenshots(imageA, imageB):
         # compute the Structural Similarity Index (SSIM) between the two
         # images, ensuring that the difference image is returned
         (score, diff) = structural_similarity(grayA, grayB, full=True)
-        #print("SSIM: {}".format(score))
         rounded_score = round(score, 2)
 
-        if rounded_score == 1.00 :
-            print_status(f"{imageA} Is identical to {imageB} with a score of {str(rounded_score)}!")
-        elif rounded_score > .90 :
-            print_status(f"{imageA} Is similar to {imageB} with a score of {str(rounded_score)}!")
-        elif rounded_score < .90 :
-            print_status(f"{imageA} Is different from {imageB} with a score of {str(rounded_score)}!")
-    except cv2.error as exception:
-        print_error(f"Unable to compare screenshots.  One or more of the screenshots are missing!")
+        if progress_callback is not None:
+            adj = "different from"
+            if rounded_score == 1.00:
+                adj = "identical to"
+            elif rounded_score >= .90:
+                adj = "similar to"
+            progress_callback(f"{siteA.stem} is {adj} {siteB.stem} with a score of {str(rounded_score)}!")
+
+    except cv2.error as e:
+        print_error(e.msg)
         rounded_score = None
     except ValueError as ve:
-        print_error(ve)
+        print_error(ve.msg)
         rounded_score = None
     return rounded_score

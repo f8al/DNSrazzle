@@ -37,7 +37,7 @@ __email__ = 'securityshrimp@proton.me'
 
 
 
-from .IOUtil import print_debug, print_error, print_good, print_status
+from .IOUtil import print_debug, print_error
 from selenium import webdriver
 from selenium.common.exceptions import WebDriverException
 
@@ -46,17 +46,17 @@ def screenshot_domain(driver, domain, out_dir):
     """
     function to take screenshot of supplied domain
     """
-    print_status(f"collecting screenshot of {domain}!")
     url = "http://" + str(domain).strip('[]')
     try:
         driver.get(url)
         ss_path = str(out_dir + domain + '.png')
         driver.set_window_size(1920, 1080)  # May need manual adjustment
         driver.get_screenshot_as_file(ss_path)
-        print_good(f"Screenshot for {domain} saved to {ss_path}")
+        return True
     except WebDriverException as exception:
         print_error(f"Unable to screenshot {domain}!")
         print_debug(exception.msg)
+        return False
 
 
 def get_webdriver(browser_name):
@@ -82,12 +82,14 @@ def get_webdriver(browser_name):
                 print_error(f"Unable to install/update Firefox webdriver because {E}")
 
         else:
-            print_status(f"Unimplemented webdriver browser: {browser_name}")
+            print_error(f"Unimplemented webdriver browser: {browser_name}")
     except WebDriverException as exception:
         print_debug(exception.msg)
 
 
 def quit_webdriver(driver):
+    if driver is None:
+        return
     try:
         driver.quit()
     except Exception as e:

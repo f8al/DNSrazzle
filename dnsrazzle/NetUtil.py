@@ -36,28 +36,24 @@ __twitter__ = '@securityshrimp'
 __email__ = 'securityshrimp@proton.me'
 
 
-def run_whois(domains, nameserver, debug):
-    from progress.bar import Bar
-    num_doms = len(domains)
-    pBar = Bar('Running whois queries on discovered domains', max=num_doms)
+def run_whois(domains, nameserver, progress_callback=None):
     for domain in domains:
         if len(domain) > 2:
             try:
                 from whoisdomain import query
                 whoisq = query(domain=domain['domain-name'].encode('idna').decode(), server=nameserver)
             except Exception as e:
-                if debug:
-                    from IOUtil import print_error
-                    print(" foo? ")
-                    print_error(e)
+                from IOUtil import print_error
+                print_error(f"Failed to run WHOIS query for {domain['domain-name']}")
+                print_error(e.msg)
             else:
                 if whoisq is not None:
                     if whoisq.creation_date:
                         domain['whois-created'] = str(whoisq.creation_date).split(' ')[0]
                     if whoisq.registrar:
                         domain['whois-registrar'] = str(whoisq.registrar)
-        pBar.next()
-    pBar.finish()
+        if progress_callback is not None:
+            progress_callback()
 
 
 def run_portscan(domains, out_dir):
