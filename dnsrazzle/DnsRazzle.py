@@ -72,8 +72,8 @@ class DnsRazzle():
             m()
         self.domains = fuzz.domains
 
-    def whois(self):
-        run_whois(self.domains, self.nameserver, self.debug)
+    def whois(self, progress_callback):
+        run_whois(domains=self.domains, nameserver=self.nameserver, progress_callback=progress_callback)
 
     def gendom_start(self):
         from dnstwist import DomainThread, UrlParser
@@ -86,9 +86,7 @@ class DnsRazzle():
         for _ in range(self.threads):
             worker = DomainThread(self.jobs)
             worker.setDaemon(True)
-
-            self.kill_received = False
-            self.debug = False
+            worker.debug = self.debug
 
             worker.option_extdns = True
             worker.option_geoip = False
@@ -106,21 +104,24 @@ class DnsRazzle():
             worker.start()
             self.workers.append(worker)
 
-    def gendom_stop(self):
+    def gendom_stop(self, callback=None):
         for worker in self.workers:
+            if callback is not None:
+                callback()
             worker.join()
 
-    def check_domains(self):
-        screenshot_domain(self.driver, self.domain, self.out_dir + '/screenshots/originals/')
+    def check_domains(self, progress_callback=None):
+        screenshot_domain(driver=self.driver, domain=self.domain, out_dir=self.out_dir + '/screenshots/originals/')
         for d in self.domains:
             if d['domain-name'] != self.domain:
-                self.check_domain(d)
+                self.check_domain(domain_entry=d, progress_callback=progress_callback)
 
-    def check_domain(self, domain_entry):
-        success = screenshot_domain(self.driver, domain_entry['domain-name'], self.out_dir + '/screenshots/')
+    def check_domain(self, domain_entry, progress_callback=None):
+        success = screenshot_domain(driver=self.driver, domain=domain_entry['domain-name'], out_dir=self.out_dir + '/screenshots/')
         if success:
-            ssim_score = compare_screenshots(self.out_dir + '/screenshots/originals/' + self.domain + '.png',
-                            self.out_dir + '/screenshots/' + domain_entry['domain-name'] + '.png')
+            ssim_score = compare_screenshots(imageA=self.out_dir + '/screenshots/originals/' + self.domain + '.png',
+                                             imageB=self.out_dir + '/screenshots/' + domain_entry['domain-name'] + '.png',
+                                             progress_callback=progress_callback)
             domain_entry['ssim-score'] = ssim_score
         if self.nmap:
             run_portscan(domain_entry['domain-name'], self.out_dir)

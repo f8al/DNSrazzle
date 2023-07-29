@@ -163,13 +163,14 @@ def main():
 
     try:
         from progress.bar import Bar
-        driver = BrowserUtil.get_webdriver(arguments.browser)
 
         for entry in domain_raw_list:
             r_domain = str(entry)
             razzle = DnsRazzle(domain=r_domain, out_dir=out_dir, tld=tld, dictionary=dictionary, file=arguments.file,
                                useragent=useragent, debug=debug, threads=threads, nmap=nmap, recon=recon, driver=driver,
                                nameserver=nameserver)
+
+            print_status("Generating possible domain name impersonations")
             razzle.generate_fuzzed_domains()
             if justPrintDomains:
                 for entry in razzle.domains[1:]:
@@ -177,27 +178,37 @@ def main():
                 return
 
             print_status(f"Performing General Enumeration of Domain: {r_domain}")
+            bar = Bar('Running DNS lookup of possible domain permutations', max=len(razzle.domains)-1)
             razzle.gendom_start()
-            bar = Bar('Processing domain permutations', max=razzle.jobs_max - 1)
             while not razzle.jobs.empty():
                 bar.goto(razzle.jobs_max - razzle.jobs.qsize())
                 time.sleep(0.5)
-
-            razzle.gendom_stop()
-            bar.goto(razzle.jobs_max)
+            bar.finish()
+            bar = Bar(f"Waiting for straggling DNS responses...", max=len(razzle.workers))
+            razzle.gendom_stop(bar.next)
             bar.finish()
             if debug:
                 print_good(f"Generated domains dictionary: \n{razzle.domains}")
 
-            razzle.whois()
+            pBar = Bar('Running WHOIS queries on discovered domains', max=len(razzle.domains))
+            razzle.whois(pBar.next)
+            pBar.finish()
+
             formatted_domains = IOUtil.format_domains(razzle.domains)
             print(formatted_domains)
-            IOUtil.write_to_file(formatted_domains, out_dir , '/discovered-domains.txt')
+            IOUtil.write_to_file(formatted_domains, out_dir, '/discovered-domains.txt')
+            print_good(f"Domain info written to {out_dir}/discovered-domains.txt")
 
-            razzle.check_domains()
+            print_status("Collecting and analyzing web screenshots")
+            if driver is None:
+                driver = BrowserUtil.get_webdriver(arguments.browser)
+                razzle.driver = driver
+            razzle.check_domains(print_status)
             BrowserUtil.quit_webdriver(driver)
+            print_good("Visual processing complete")
 
             if arguments.blocklist:
+                print_status("Compiling blocklist")
                 for domain in razzle.domains:
                     if domain['ssim-score'] is not None and domain['ssim-score'] >= arguments.blocklist_pct:
                         with open("blocklist.csv", "a") as f:
@@ -205,15 +216,9 @@ def main():
                                 if field in domain:
                                     for ip in domain[field]:
                                         f.write("%s,%s" % (ip, domain['domain-name']))
-
-    except dns.resolver.NXDOMAIN:
-        print_error(f"Could not resolve domain: {domain}")
-        sys.exit(1)
-
-    except dns.exception.Timeout:
-        print_error(f"A timeout error occurred please make sure you can reach the target DNS Servers")
-
-    else:
+                print_good(f"Blocklist saved to {out_dir}/blocklist.csv")
+    except Exception as e:
+        print(e.msg)
         sys.exit(1)
 
 
