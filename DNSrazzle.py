@@ -178,26 +178,27 @@ def main():
                 return
 
             print_status(f"Performing General Enumeration of Domain: {r_domain}")
-            bar = Bar('Running DNS lookup of possible domain permutations', max=len(razzle.domains)-1)
+            bar = Bar('Running DNS lookup of possible domain permutations…', max=len(razzle.domains)-1)
             razzle.gendom_start()
             while not razzle.jobs.empty():
                 bar.goto(razzle.jobs_max - razzle.jobs.qsize())
                 time.sleep(0.5)
             bar.finish()
-            bar = Bar(f"Waiting for straggling DNS responses...", max=len(razzle.workers))
+            bar = Bar(f"Waiting for straggling DNS responses…", max=len(razzle.workers))
             razzle.gendom_stop(bar.next)
             bar.finish()
             if debug:
                 print_good(f"Generated domains dictionary: \n{razzle.domains}")
 
-            pBar = Bar('Running WHOIS queries on discovered domains', max=len(razzle.domains))
+            pBar = Bar('Running WHOIS queries on discovered domains…', max=len(razzle.domains))
             razzle.whois(pBar.next)
             pBar.finish()
 
+            print_status("Processing domain information")
             formatted_domains = IOUtil.format_domains(razzle.domains)
             print(formatted_domains)
             IOUtil.write_to_file(formatted_domains, out_dir, '/discovered-domains.txt')
-            print_good(f"Domain info written to {out_dir}/discovered-domains.txt")
+            print_good(f"Domain data written to {out_dir}/discovered-domains.txt")
 
             print_status("Collecting and analyzing web screenshots")
             if driver is None:
