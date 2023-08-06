@@ -43,9 +43,9 @@ def run_whois(domains, nameserver, progress_callback=None):
                 from whoisdomain import query
                 whoisq = query(domain=domain['domain-name'].encode('idna').decode(), server=nameserver)
             except Exception as e:
-                from IOUtil import print_error
+                from .IOUtil import print_error
                 print_error(f"Failed to run WHOIS query for {domain['domain-name']}")
-                print_error(e.msg)
+                print_error(e)
             else:
                 if whoisq is not None:
                     if whoisq.creation_date:
@@ -57,7 +57,7 @@ def run_whois(domains, nameserver, progress_callback=None):
 
 
 def run_portscan(domains, out_dir):
-    from IOUtil import print_status
+    from .IOUtil import print_status
     print_status(f"Running nmap on {domains}")
     import nmap
     nm = nmap.PortScanner()
@@ -74,7 +74,7 @@ def run_recondns(domains, nameserver, out_dir, threads):
     general_enum arguments : res, domain, do_axfr, do_bing, do_yandex, do_spf, do_whois, do_crt, zw, thread_num=None
     :return:
     '''
-    from IOUtil import print_status,  write_to_file
+    from .IOUtil import print_status,  write_to_file
     print_status(f'Running reconDNS report on {domains}!')
 
     from recondns import general_enum, DnsHelper, make_csv
