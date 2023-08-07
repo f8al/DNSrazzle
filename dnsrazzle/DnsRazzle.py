@@ -120,9 +120,10 @@ class DnsRazzle():
         success = screenshot_domain(driver=self.driver, domain=domain_entry['domain-name'], out_dir=self.out_dir + '/screenshots/')
         if success:
             ssim_score = compare_screenshots(imageA=self.out_dir + '/screenshots/originals/' + self.domain + '.png',
-                                             imageB=self.out_dir + '/screenshots/' + domain_entry['domain-name'] + '.png',
-                                             progress_callback=progress_callback)
+                                             imageB=self.out_dir + '/screenshots/' + domain_entry['domain-name'] + '.png')
             domain_entry['ssim-score'] = ssim_score
+            if progress_callback:
+                progress_callback(self, domain_entry)
         if self.nmap:
             run_portscan(domain_entry['domain-name'], self.out_dir)
         if self.recon:

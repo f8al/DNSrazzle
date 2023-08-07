@@ -37,28 +37,19 @@ __email__ = 'securityshrimp@proton.me'
 
 
 import argparse
-import dns.resolver
+import csv
 import os
 import signal
 import sys
 import time
-
-from dnsrazzle import BrowserUtil, IOUtil, NetUtil
+from progress.bar import Bar
+from dnsrazzle import BrowserUtil, IOUtil
 from dnsrazzle.DnsRazzle import DnsRazzle
 from dnsrazzle.IOUtil import print_error, print_good, print_status
 
 def main():
-    #
-    # Option Variables
-    #
     os.environ['WDM_LOG_LEVEL'] = '0'
-    nameserver = '1.1.1.1'
-    domain = None
-
     IOUtil.banner()
-    #
-    # Define options
-    #
     parser = argparse.ArgumentParser()
     try:
         parser.add_argument('-b', '--blocklist', action="store_true", dest='blocklist', default=False,
@@ -92,7 +83,7 @@ def main():
         arguments = parser.parse_args()
 
     except KeyboardInterrupt:
-        # Handle exit() from passing --help
+        # TODO Handle exit() from passing --help
         raise
 
     out_dir = arguments.out_dir
@@ -161,67 +152,96 @@ def main():
             tld = set(f.read().splitlines())
             tld = [x for x in tld if x.isalpha()]
 
-    try:
-        from progress.bar import Bar
+    print_status("Generating possible domain name impersonations")
+    razzles: list[DnsRazzle] = []
+    for entry in domain_raw_list:
+        razzle = DnsRazzle(domain=str(entry), out_dir=out_dir, tld=tld, dictionary=dictionary, file=arguments.file,
+                useragent=useragent, debug=debug, threads=threads, nmap=nmap, recon=recon, driver=driver,
+                nameserver=nameserver)
+        razzles.append(razzle)
+        # fuzzing is fast so just do it while building the list of razzlers
+        razzle.generate_fuzzed_domains()
 
-        for entry in domain_raw_list:
-            r_domain = str(entry)
-            razzle = DnsRazzle(domain=r_domain, out_dir=out_dir, tld=tld, dictionary=dictionary, file=arguments.file,
-                               useragent=useragent, debug=debug, threads=threads, nmap=nmap, recon=recon, driver=driver,
-                               nameserver=nameserver)
+    if justPrintDomains:
+        for razzle in razzles:
+            for entry in razzle.domains[1:]:
+                print(entry['domain-name'])
+        return
 
-            print_status("Generating possible domain name impersonations")
-            razzle.generate_fuzzed_domains()
-            if justPrintDomains:
-                for entry in razzle.domains[1:]:
-                    print(entry['domain-name'])
-                return
+    for razzle in razzles:
+        bar = Bar(f'Running DNS lookup of possible domain permutations for {razzle.domain}…', max=len(razzle.domains)-1)
+        razzle.gendom_start()
+        while not razzle.jobs.empty():
+            bar.goto(razzle.jobs_max - razzle.jobs.qsize())
+            time.sleep(0.5)
+        bar.goto(bar.max)
+        bar.finish()
+        bar = Bar(f"Waiting for straggling DNS responses…", max=len(razzle.workers))
+        razzle.gendom_stop(bar.next)
+        bar.finish()
+        if debug:
+            print_good(f"Generated domains dictionary: \n{razzle.domains}")
 
-            print_status(f"Performing General Enumeration of Domain: {r_domain}")
-            bar = Bar('Running DNS lookup of possible domain permutations…', max=len(razzle.domains)-1)
-            razzle.gendom_start()
-            while not razzle.jobs.empty():
-                bar.goto(razzle.jobs_max - razzle.jobs.qsize())
-                time.sleep(0.5)
-            bar.finish()
-            bar = Bar(f"Waiting for straggling DNS responses…", max=len(razzle.workers))
-            razzle.gendom_stop(bar.next)
-            bar.finish()
+    for razzle in razzles:
+        pBar = Bar(f'Running WHOIS queries on discovered domains for {razzle.domain}…', max=len(razzle.domains))
+        razzle.whois(pBar.next)
+        pBar.finish()
+
+    print_status("Processing domain information")
+    with open(out_dir + '/discovered-domains.csv', 'w') as f:
+        header_written = False
+        writer = csv.DictWriter(f, IOUtil.domain_entry_keys)
+        for razzle in razzles:
             if debug:
-                print_good(f"Generated domains dictionary: \n{razzle.domains}")
+                formatted_domains = IOUtil.format_domains(razzle.domains)
+                print(formatted_domains)
 
-            pBar = Bar('Running WHOIS queries on discovered domains…', max=len(razzle.domains))
-            razzle.whois(pBar.next)
-            pBar.finish()
+            if not header_written:
+                writer.writeheader()
+                header_written = True
+            for d in razzle.domains:
+                writer.writerow(d)
+    print_good(f"Domain data written to {out_dir}/discovered-domains.csv")
 
-            print_status("Processing domain information")
-            formatted_domains = IOUtil.format_domains(razzle.domains)
-            print(formatted_domains)
-            IOUtil.write_to_file(formatted_domains, out_dir, '/discovered-domains.txt')
-            print_good(f"Domain data written to {out_dir}/discovered-domains.txt")
+    print_status("Collecting and analyzing web screenshots")
 
-            print_status("Collecting and analyzing web screenshots")
-            if driver is None:
-                driver = BrowserUtil.get_webdriver(arguments.browser)
-                razzle.driver = driver
-            razzle.check_domains(print_status)
-            BrowserUtil.quit_webdriver(driver)
-            print_good("Visual processing complete")
+    if driver is None:
+        driver = BrowserUtil.get_webdriver(arguments.browser)
 
-            if arguments.blocklist:
-                print_status("Compiling blocklist")
-                for domain in razzle.domains:
-                    if domain['ssim-score'] is not None and domain['ssim-score'] >= arguments.blocklist_pct:
-                        with open("blocklist.csv", "a") as f:
-                            for field in ['dns-a', 'dns-aaaa', 'dns-ns', 'dns-mx']:
-                                if field in domain:
-                                    for ip in domain[field]:
-                                        f.write("%s,%s" % (ip, domain['domain-name']))
-                print_good(f"Blocklist saved to {out_dir}/blocklist.csv")
-    except Exception as e:
-        print(e.msg)
-        sys.exit(1)
+    with open(file=out_dir + "/domain_similarity.csv", mode="w") as f:
+        f.write("original_domain,discovered_domain,similarity_score\n")
 
+    for razzle in razzles:
+        razzle.driver = driver
+        razzle.check_domains(check_domain_callback)
+    BrowserUtil.quit_webdriver(driver)
+    print_good(f"Visual analysis saved to {out_dir}/domain_similarity.csv")
+
+    if arguments.blocklist:
+        print_status("Compiling blocklist")
+        for razzle in razzles:
+            for domain in razzle.domains:
+                if domain['ssim-score'] is not None and domain['ssim-score'] >= arguments.blocklist_pct:
+                    with open(out_dir + "/blocklist.csv", "a") as f:
+                        for field in ['dns-a', 'dns-aaaa', 'dns-ns', 'dns-mx']:
+                            if field in domain:
+                                for ip in domain[field]:
+                                    f.write("%s,%s" % (ip, domain['domain-name']))
+        print_good(f"Blocklist saved to {out_dir}/blocklist.csv")
+
+def check_domain_callback(razzle: DnsRazzle, domain_entry):
+    siteA = razzle.domain
+    siteB = domain_entry['domain-name']
+    score = domain_entry['ssim-score']
+    rounded_score = round(score, 2)
+    adj = "different from"
+    if rounded_score == 1.00:
+        adj = "identical to"
+    elif rounded_score >= .90:
+        adj = "similar to"
+    print_status(f"{siteB} is {adj} {siteA} with a score of {rounded_score}!")
+    with open(file=razzle.out_dir + "/domain_similarity.csv", mode="a") as f:
+        f.write(f"{siteA},{siteB},{rounded_score}\n")
 
 if __name__ == "__main__":
     main()
