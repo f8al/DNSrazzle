@@ -40,7 +40,7 @@ from .IOUtil import print_error
 from skimage.metrics import structural_similarity
 from pathlib import Path
 
-def compare_screenshots(imageA, imageB, progress_callback=None):
+def compare_screenshots(imageA, imageB):
     siteA = Path(imageA)
     siteB = Path(imageB)
     missing_file = False
@@ -63,20 +63,12 @@ def compare_screenshots(imageA, imageB, progress_callback=None):
         # compute the Structural Similarity Index (SSIM) between the two
         # images, ensuring that the difference image is returned
         (score, diff) = structural_similarity(grayA, grayB, full=True)
-        rounded_score = round(score, 2)
-
-        if progress_callback is not None:
-            adj = "different from"
-            if rounded_score == 1.00:
-                adj = "identical to"
-            elif rounded_score >= .90:
-                adj = "similar to"
-            progress_callback(f"{siteA.stem} is {adj} {siteB.stem} with a score of {str(rounded_score)}!")
+        return score
 
     except cv2.error as e:
         print_error(e.msg)
-        rounded_score = None
+
     except ValueError as ve:
         print_error(ve.msg)
-        rounded_score = None
-    return rounded_score
+
+    return None

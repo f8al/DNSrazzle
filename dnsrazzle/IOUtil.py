@@ -109,6 +109,16 @@ def print_debug(message=""):
 def print_line(message=""):
     print(f"{message}", flush=True)
 
+domain_entry_keys = [
+    'domain-name',
+    # 'ssdeep-score', 'ssim-score',
+    'whois-created', 'whois-registrar',
+    'dns-ns', 'dns-a', 'dns-aaaa',
+    'dns-mx', 'mx-spy',
+    'banner-http', 'banner-smtp',
+    'fuzzer',
+]
+
 def format_domains(domains=[]):
     cli = []
     width_fuzzer = max([len(x['fuzzer']) for x in domains]) + 1
