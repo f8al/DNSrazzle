@@ -88,23 +88,27 @@ def get_webdriver(browser_name):
     try:
         if browser_name == 'chrome':
             options = webdriver.ChromeOptions()
-            options.headless = True
+            options.add_argument("--window-size=1920,1080")
+            options.add_argument("--headless")
+            options.page_load_strategy = 'eager'
             try:
                 from webdriver_manager.chrome import ChromeDriverManager
                 s = webdriver.chrome.service.Service(executable_path = ChromeDriverManager().install())
                 return webdriver.Chrome(service=s, options=options)
             except Exception as E:
-                print_error(f"Unable to install/update Chrome webdriver because {E}")
+                print_error(f"Unable to install/update Chrome webdriver because of error: {E}")
 
         elif browser_name == 'firefox':
             options = webdriver.FirefoxOptions()
-            options.headless = True
+            options.add_argument("--window-size=1920,1080")
+            options.add_argument("--headless")
+            options.page_load_strategy = 'eager'
             try:
                 from webdriver_manager.firefox import GeckoDriverManager
                 s = webdriver.firefox.service.Service(executable_path=GeckoDriverManager().install())
                 return webdriver.Firefox(service=s, options=options)
             except Exception as E:
-                print_error(f"Unable to install/update Firefox webdriver because {E}")
+                print_error(f"Unable to install/update Firefox webdriver because of error:  {E}")
 
         else:
             print_error(f"Unimplemented webdriver browser: {browser_name}")
