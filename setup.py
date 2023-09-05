@@ -6,7 +6,7 @@ with open("docs/README.md", "r") as fh:
 
 setup(
 	name='DNSrazzle',
-	version='1.5.1',
+	version='1.5.3',
     license='Apache',
 	author='SecurityShrimp',
 	author_email='securityshrimp@proton.me',

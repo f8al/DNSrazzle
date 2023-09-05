@@ -30,7 +30,7 @@ Copyright 2023 SecurityShrimp
 '''
 
 
-__version__ = '1.5.1'
+__version__ = '1.5.3'
 __author__ = 'SecurityShrimp'
 __twitter__ = '@securityshrimp'
 __email__ = 'securityshrimp@proton.me'
@@ -43,39 +43,15 @@ from selenium.webdriver.chrome.options import Options
 from selenium.common.exceptions import WebDriverException
 
 
-'''
-possible bugfix version of screenshot domain method
-
-def screenshot_domain(driver, domain, out_dir):
-    """
-    function to take screenshot of supplied domain
-    """
-    options = Options()
-    options.headless = True
-    options.page_load_strategy = 'eager'
-    driver = webdriver.Chrome(options=options)
-    url = "http://" + str(domain).strip('[]')
-    try:
-        driver.get(url)
-        ss_path = str(out_dir + domain + '.png')
-        driver.set_window_size(1920, 1080)  # May need manual adjustment
-        driver.get_screenshot_as_file(ss_path)
-        return True
-    except WebDriverException as exception:
-        print_error(f"Unable to screenshot {domain}!")
-        print_debug(exception.msg)
-        return False
-'''
-
 def screenshot_domain(driver, domain, out_dir):
     """
     function to take screenshot of supplied domain
     """
     url = "http://" + str(domain).strip('[]')
     try:
+        driver.set_page_load_timeout(10)
         driver.get(url)
         ss_path = str(out_dir + domain + '.png')
-        driver.set_window_size(1920, 1080)  # May need manual adjustment
         driver.get_screenshot_as_file(ss_path)
         return True
     except WebDriverException as exception:
@@ -88,23 +64,27 @@ def get_webdriver(browser_name):
     try:
         if browser_name == 'chrome':
             options = webdriver.ChromeOptions()
-            options.headless = True
+            options.add_argument("--window-size=1920,1080")
+            options.add_argument("--headless")
+            options.page_load_strategy = 'normal'
             try:
                 from webdriver_manager.chrome import ChromeDriverManager
                 s = webdriver.chrome.service.Service(executable_path = ChromeDriverManager().install())
                 return webdriver.Chrome(service=s, options=options)
             except Exception as E:
-                print_error(f"Unable to install/update Chrome webdriver because {E}")
+                print_error(f"Unable to install/update Chrome webdriver because of error: {E}")
 
         elif browser_name == 'firefox':
             options = webdriver.FirefoxOptions()
-            options.headless = True
+            options.add_argument("--window-size=1920,1080")
+            options.add_argument("--headless")
+            options.page_load_strategy = 'normal'
             try:
                 from webdriver_manager.firefox import GeckoDriverManager
                 s = webdriver.firefox.service.Service(executable_path=GeckoDriverManager().install())
                 return webdriver.Firefox(service=s, options=options)
             except Exception as E:
-                print_error(f"Unable to install/update Firefox webdriver because {E}")
+                print_error(f"Unable to install/update Firefox webdriver because of error:  {E}")
 
         else:
             print_error(f"Unimplemented webdriver browser: {browser_name}")
