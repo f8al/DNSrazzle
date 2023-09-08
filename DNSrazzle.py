@@ -51,40 +51,35 @@ def main():
     os.environ['WDM_LOG_LEVEL'] = '0'
     IOUtil.banner()
     parser = argparse.ArgumentParser()
-    try:
-        parser.add_argument('-b', '--blocklist', action="store_true", dest='blocklist', default=False,
-                             help="Generate a blocklist of domains/IP addresses of suspected impersonation domains.")
-        parser.add_argument('-B', '--blocklist_pct', type=float, dest='blocklist_pct', metavar='PCT', default=0.9,
-                            help="Threshold for what gets put on the blocklist. Default is 90%.")
-        parser.add_argument('--browser', type=str, dest='browser', default='chrome',
-                            help='Specify browser to use with WebDriver. Default is "chrome", "firefox" is also supported.')
-        parser.add_argument('-d', '--domain', type=str, dest='domain', help='Target domain or domain list.')
-        parser.add_argument('-D', '--dictionary', type=str, dest='dictionary', metavar='FILE', default=[],
-                            help='Path to dictionary file to pass to DNSTwist to aid in domain permutation generation.')
-        parser.add_argument('-f', '--file', type=str, dest='file', metavar='FILE', default=None,
-                            help='Provide a file containing a list of domains to run DNSrazzle on.')
-        parser.add_argument('-g', '--generate', dest='generate', action='store_true', default=False,
-                            help='Do a dry run of DNSRazzle and just output permutated domain names.')
-        parser.add_argument('-n', '--nmap', dest='nmap', action='store_true', default=False,
-                            help='Perform nmap scan on discovered domains.')
-        parser.add_argument('-N', '--ns', dest='nameserver', metavar='STRING', type=str, default='1.1.1.1',
-                            help='Specify DNS nameserver to use for DNS queries')
-        parser.add_argument('-o', '--out-directory', type=str, dest='out_dir', default=None,
-                            help='Absolute path of directory to output reports to.  Will be created if doesn\'t exist.'),
-        parser.add_argument('-r', '--recon', dest = 'recon', action = 'store_true', default = False,
-                            help = 'Create dnsrecon report on discovered domains.')
-        parser.add_argument('-t', '--threads', dest='threads', type=int, default=10,
-                            help='Number of threads to use in permutation checks, reverse lookups, forward lookups, brute force and SRV record enumeration.')
-        parser.add_argument('--tld', type=str, dest='tld', metavar='FILE', default=[],
-                            help='Path to TLD dictionary file.')
-        parser.add_argument('-u', '--useragent', type=str, metavar='STRING', default='Mozilla/5.0 dnsrazzle/%s' % __version__,
-                            help='User-Agent STRING to send with HTTP requests. Default is Mozilla/5.0 dnsrazzle/%s)' % __version__)
-        parser.add_argument('--debug', dest='debug', action='store_true', default=False, help='Print debug messages')
-        arguments = parser.parse_args()
-
-    except KeyboardInterrupt:
-        # TODO Handle exit() from passing --help
-        raise
+    parser.add_argument('-b', '--blocklist', action="store_true", dest='blocklist', default=False,
+                            help="Generate a blocklist of domains/IP addresses of suspected impersonation domains.")
+    parser.add_argument('-B', '--blocklist_pct', type=float, dest='blocklist_pct', metavar='PCT', default=0.9,
+                        help="Threshold for what gets put on the blocklist. Default is 0.9.")
+    parser.add_argument('--browser', type=str, dest='browser', default='chrome',
+                        help='Specify browser to use with WebDriver. Default is "chrome", "firefox" is also supported.')
+    parser.add_argument('-d', '--domain', type=str, dest='domain', help='Target domain or domain list.')
+    parser.add_argument('-D', '--dictionary', type=str, dest='dictionary', metavar='FILE', default=[],
+                        help='Path to dictionary file to pass to DNSTwist to aid in domain permutation generation.')
+    parser.add_argument('-f', '--file', type=str, dest='file', metavar='FILE', default=None,
+                        help='Provide a file containing a list of domains to run DNSrazzle on.')
+    parser.add_argument('-g', '--generate', dest='generate', action='store_true', default=False,
+                        help='Do a dry run of DNSRazzle and just output permutated domain names.')
+    parser.add_argument('-n', '--nmap', dest='nmap', action='store_true', default=False,
+                        help='Perform nmap scan on discovered domains.')
+    parser.add_argument('-N', '--ns', dest='nameserver', metavar='STRING', type=str, default='1.1.1.1',
+                        help='Specify DNS nameserver to use for DNS queries')
+    parser.add_argument('-o', '--out-directory', type=str, dest='out_dir', default=None,
+                        help='Absolute path of directory to output reports to.  Will be created if doesn\'t exist.'),
+    parser.add_argument('-r', '--recon', dest = 'recon', action = 'store_true', default = False,
+                        help = 'Create dnsrecon report on discovered domains.')
+    parser.add_argument('-t', '--threads', dest='threads', type=int, default=10,
+                        help='Number of threads to use in permutation checks, reverse lookups, forward lookups, brute force and SRV record enumeration.')
+    parser.add_argument('--tld', type=str, dest='tld', metavar='FILE', default=[],
+                        help='Path to TLD dictionary file.')
+    parser.add_argument('-u', '--useragent', type=str, metavar='STRING', default='Mozilla/5.0 dnsrazzle/%s' % __version__,
+                        help='User-Agent STRING to send with HTTP requests. Default is Mozilla/5.0 dnsrazzle/%s)' % __version__)
+    parser.add_argument('--debug', dest='debug', action='store_true', default=False, help='Print debug messages')
+    arguments = parser.parse_args()
 
     out_dir = arguments.out_dir
     useragent = arguments.useragent
