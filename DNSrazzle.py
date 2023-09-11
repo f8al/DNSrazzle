@@ -117,9 +117,8 @@ def main():
     elif arguments.file is not None:
          domain_raw_list = []
          with open(arguments.file) as f:
-             for line in f:
-                 for item in line.split("\n"):
-                     domain_raw_list.append(item)
+            for item in f.read().splitlines():
+                domain_raw_list.append(item)
     else:
          print_error(f"You must specify either the -d or the -f option")
          sys.exit(1)
