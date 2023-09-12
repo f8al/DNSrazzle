@@ -118,7 +118,7 @@ class DnsRazzle():
         #     # impossible to do a comparison with any of its variations.
         #     return False
         for d in self.domains:
-            if d['domain-name'] != self.domain and 'whois-created' in d.keys():
+            if d['domain-name'] != self.domain and 'dns-a' in d.keys() and '!ServFail' not in d['dns-a']:
                 self.check_domain(domain_entry=d, progress_callback=progress_callback)
         return True
 
