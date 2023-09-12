@@ -60,9 +60,9 @@ def screenshot_domain(driver, domain, out_dir):
 
 
 def get_webdriver(browser_name):
-from fake_useragent import UserAgent
-ua = UserAgent()
-user_agent = ua.random
+    from fake_useragent import UserAgent
+    ua = UserAgent()
+    user_agent = ua.random
     try:
         if browser_name == 'chrome':
             options = webdriver.ChromeOptions()
