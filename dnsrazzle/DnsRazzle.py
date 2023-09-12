@@ -39,6 +39,7 @@ from .BrowserUtil import screenshot_domain
 from .NetUtil import run_portscan, run_recondns, run_whois
 from .VisionUtil import compare_screenshots
 import queue
+from pathlib import Path
 
 class DnsRazzle():
     def __init__(self, domain, out_dir, tld, dictionary, file, useragent, debug, threads, nmap, recon, driver, nameserver = '1.1.1.1'):
@@ -111,17 +112,24 @@ class DnsRazzle():
             worker.join()
 
     def check_domains(self, progress_callback=None):
-        screenshot_domain(driver=self.driver, domain=self.domain, out_dir=self.out_dir + '/screenshots/originals/')
+        success = screenshot_domain(driver=self.driver, domain=self.domain, out_dir=self.out_dir + '/screenshots/originals/')
+        # if not success:
+        #     # The original domain could not be screenshotted, therefore it is
+        #     # impossible to do a comparison with any of its variations.
+        #     return False
         for d in self.domains:
             if d['domain-name'] != self.domain and 'whois-created' in d.keys():
                 self.check_domain(domain_entry=d, progress_callback=progress_callback)
+        return True
 
     def check_domain(self, domain_entry, progress_callback=None):
         success = screenshot_domain(driver=self.driver, domain=domain_entry['domain-name'], out_dir=self.out_dir + '/screenshots/')
         if success:
-            ssim_score = compare_screenshots(imageA=self.out_dir + '/screenshots/originals/' + self.domain + '.png',
-                                             imageB=self.out_dir + '/screenshots/' + domain_entry['domain-name'] + '.png')
-            domain_entry['ssim-score'] = ssim_score
+            original_png = self.out_dir + '/screenshots/originals/' + self.domain + '.png'
+            if Path(original_png).is_file():
+                ssim_score = compare_screenshots(imageA=original_png,
+                                                imageB=self.out_dir + '/screenshots/' + domain_entry['domain-name'] + '.png')
+                domain_entry['ssim-score'] = ssim_score
             if progress_callback:
                 progress_callback(self, domain_entry)
         if self.nmap:

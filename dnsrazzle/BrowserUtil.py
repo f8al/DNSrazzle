@@ -55,8 +55,8 @@ def screenshot_domain(driver, domain, out_dir):
         driver.get_screenshot_as_file(ss_path)
         return True
     except WebDriverException as exception:
-        print_error(f"Unable to screenshot {domain}!")
-        print_debug(exception.msg)
+        print_error(f"Unable to screenshot {domain}. {exception.msg}")
+        # print_debug(exception.msg)
         return False
 
 
