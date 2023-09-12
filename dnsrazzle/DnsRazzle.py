@@ -113,7 +113,7 @@ class DnsRazzle():
     def check_domains(self, progress_callback=None):
         screenshot_domain(driver=self.driver, domain=self.domain, out_dir=self.out_dir + '/screenshots/originals/')
         for d in self.domains:
-            if d['domain-name'] != self.domain:
+            if d['domain-name'] != self.domain and 'whois-created' in d.keys():
                 self.check_domain(domain_entry=d, progress_callback=progress_callback)
 
     def check_domain(self, domain_entry, progress_callback=None):

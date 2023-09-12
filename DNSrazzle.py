@@ -146,15 +146,16 @@ def main():
             tld = set(f.read().splitlines())
             tld = [x for x in tld if x.isalpha()]
 
-    print_status("Generating possible domain name impersonations")
     razzles: list[DnsRazzle] = []
+    bar = Bar(f'Generating possible domain name impersonations…', max=len(domain_raw_list))
     for entry in domain_raw_list:
         razzle = DnsRazzle(domain=str(entry), out_dir=out_dir, tld=tld, dictionary=dictionary, file=arguments.file,
                 useragent=useragent, debug=debug, threads=threads, nmap=nmap, recon=recon, driver=driver,
                 nameserver=nameserver)
         razzles.append(razzle)
-        # fuzzing is fast so just do it while building the list of razzlers
         razzle.generate_fuzzed_domains()
+        bar.next()
+    bar.finish()
 
     if justPrintDomains:
         for razzle in razzles:
@@ -169,9 +170,6 @@ def main():
             bar.goto(razzle.jobs_max - razzle.jobs.qsize())
             time.sleep(0.5)
         bar.goto(bar.max)
-        bar.finish()
-        bar = Bar(f"Waiting for straggling DNS responses…", max=len(razzle.workers))
-        razzle.gendom_stop(bar.next)
         bar.finish()
         if debug:
             print_good(f"Generated domains dictionary: \n{razzle.domains}")
