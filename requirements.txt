@@ -17,3 +17,4 @@ dnstwist==20201228
 progress
 reconDNS>=0.0.3
 whoisdomain==1.20230720.2
+fake_useragent
