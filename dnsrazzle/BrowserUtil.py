@@ -41,6 +41,7 @@ from .IOUtil import print_debug, print_error
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.common.exceptions import WebDriverException
+from fake_useragent import UserAgent
 
 
 def screenshot_domain(driver, domain, out_dir):
@@ -63,7 +64,9 @@ def screenshot_domain(driver, domain, out_dir):
 def get_webdriver(browser_name):
     try:
         if browser_name == 'chrome':
+            user_agent = ua.random
             options = webdriver.ChromeOptions()
+            options.add_argument(f'--user-agent={user_agent}')
             options.add_argument("--window-size=1920,1080")
             options.add_argument("--headless")
             options.page_load_strategy = 'normal'
@@ -75,7 +78,9 @@ def get_webdriver(browser_name):
                 print_error(f"Unable to install/update Chrome webdriver because of error: {E}")
 
         elif browser_name == 'firefox':
+            user_agent = ua.random
             options = webdriver.FirefoxOptions()
+            options.add_argument(f'--user-agent={user_agent}')
             options.add_argument("--window-size=1920,1080")
             options.add_argument("--headless")
             options.page_load_strategy = 'normal'
