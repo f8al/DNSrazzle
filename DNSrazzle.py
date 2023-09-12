@@ -224,6 +224,9 @@ def main():
 def check_domain_callback(razzle: DnsRazzle, domain_entry):
     siteA = razzle.domain
     siteB = domain_entry['domain-name']
+    if 'ssim-score' not in domain_entry.keys() or not domain_entry['ssim-score']:
+        print_error(f"Could not compare {siteA} to {siteB}.")
+        return
     score = domain_entry['ssim-score']
     rounded_score = round(score, 2)
     adj = "different from"

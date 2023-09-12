@@ -45,10 +45,10 @@ def compare_screenshots(imageA, imageB):
     siteB = Path(imageB)
     missing_file = False
     if not siteA.is_file():
-        print_error(f"Missing file: {siteA}")
+        # print_error(f"Missing file: {siteA}")
         missing_file = True
     if not siteB.is_file():
-        print_error(f"Missing file: {siteB}")
+        # print_error(f"Missing file: {siteB}")
         missing_file = True
     if missing_file:
         return None
