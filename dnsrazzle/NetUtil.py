@@ -41,7 +41,7 @@ def run_whois(domains, nameserver, progress_callback=None):
         if len(domain) > 2:
             try:
                 from whoisdomain import query
-                whoisq = query(domain=domain['domain-name'].encode('idna').decode(), server=nameserver)
+                whoisq = query(domain=domain['domain-name'].encode('idna').decode())
             except Exception as e:
                 from .IOUtil import print_error, reset_tty
                 print_error(f"Failed to run WHOIS query for {domain['domain-name']}")
