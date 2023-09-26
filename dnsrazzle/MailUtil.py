@@ -63,16 +63,16 @@ mail_host = parser['connection_info']['smtp_host']
 mail_port = parser['connection_info']['smtp_port']
 send_user = parser['credentials']['user']
 send_pass = parser['credentials']['pword']
-mail_recipients = parser['recipients']['sendToRecipients']
-
+mail_recipients = parser['mail_options']['send_to_recipients']
+mail_subject = parser['mail_options']['subject']
 
 class sendmail:
 	def __init__(self,subject,recipients):
 		self.subject = subject
 		self.recipients = recipients
 		self.htmlbody = ''
-		self.sender = sendUser
-		self.senderpass = sendPass
+		self.sender = send_user
+		self.senderpass = send_pass
 		self.attachments = []
 
 	def send(self):
@@ -91,9 +91,8 @@ class sendmail:
 		s.starttls()
 		s.login(self.sender,self.senderpass)
 		s.sendmail(self.sender, self.recipients, msg.as_string())
-		#test
-    if debug == True:
-      print(msg)
+    		if debug == True:
+     			 print(msg)
 		s.quit()
 
 	def htmladd(self, html):
@@ -101,11 +100,9 @@ class sendmail:
 
 	def attach(self,msg):
 		for f in self.attachments:
-
 			ctype, encoding = mimetypes.guess_type(f)
 			if ctype is None or encoding is not None:
 				ctype = "application/octet-stream"
-
 			maintype, subtype = ctype.split("/", 1)
       
 			if maintype == "text":
@@ -131,7 +128,7 @@ class sendmail:
 
 def sendemail(out_dir,mail_recipients):
 	# subject and recipients
-	mymail = sendmail('DNSRazzle output for ' +datetime.now().strftime('%m/%d/%Y'),mail_recipients)
+	mymail = sendmail(mail_subject + datetime.now().strftime('%m/%d/%Y'),mail_recipients)
 	#start html body. Here we add a greeting.
 	mymail.htmladd('Good morning, find the daily summary below.')
 	#attach a file
