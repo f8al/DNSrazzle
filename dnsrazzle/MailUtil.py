@@ -55,16 +55,16 @@ pwd = os.getcwd()
 
 #load configuration file
 parser = configparser.ConfigParser()
-config = pwd + '/etc/MailConfig.conf'
+config = pwd + '/etc/mail_config.conf'
 parser.read( config ) #change this to speedtest.conf once configured
 
 
-mail_host = parser['connection_info']['smtp_host']
-mail_port = parser['connection_info']['smtp_port']
-send_user = parser['credentials']['user']
-send_pass = parser['credentials']['pword']
-mail_recipients = parser['mail_options']['send_to_recipients']
-mail_subject = parser['mail_options']['subject']
+mail_host = parser['CCONNECTION_INFO']['smtp_host']
+mail_port = parser['CCONNECTION_INFO']['smtp_port']
+send_user = parser['MAIL_OPTIONS']['user']
+send_pass = parser['MAIL_OPTIONS']['pword']
+mail_recipients = parser['MAIL_OPTIONS']['send_to_recipients']
+mail_subject = parser['MAIL_OPTIONS']['subject']
 
 class sendmail:
 	def __init__(self,subject,recipients):
