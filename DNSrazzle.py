@@ -14,7 +14,7 @@
 Generate, resolve, and compare domain variations to detect typosquatting,
 phishing, and brand impersonation
 
-Copyright 2020 SecurityShrimp
+Copyright 2023 SecurityShrimp
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -30,7 +30,7 @@ Copyright 2020 SecurityShrimp
 '''
 
 
-__version__ = '1.5.3'
+__version__ = '1.5.4'
 __author__ = 'SecurityShrimp'
 __twitter__ = '@securityshrimp'
 __email__ = 'securityshrimp@proton.me'
