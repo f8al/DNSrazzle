@@ -120,6 +120,7 @@ domain_entry_keys = [
 ]
 
 def format_domains(domains=[]):
+# method for formatting domain output
     cli = []
     width_fuzzer = max([len(x['fuzzer']) for x in domains]) + 1
     width_domain = max([len(x['domain-name']) for x in domains]) + 1
@@ -157,3 +158,22 @@ def format_domains(domains=[]):
         cli.append(' '.join([FG_BLU + domain['fuzzer'].ljust(width_fuzzer) + FG_RST,
                              domain['domain-name'].ljust(width_domain), ' '.join(info)]))
     return '\n'.join(cli)
+
+
+def zip_csv(directory_name, zip_file_name, filter):
+''' method for zip file creation for zipping outputted csv files invokable via the following syntax
+    zip_csv('out_dir', 'out_dir.zip', lambda name: 'csv' in name)
+'''  
+   from zipfile import ZipFile
+   # Create object of ZipFile
+   with ZipFile(zip_file_name, 'w') as zip_object:
+   # Traverse all files in directory
+   for folder_name, sub_folders, file_names in os.walk(directory_name):
+      for filename in file_names:
+      # Filter for csv files
+      if filter(filename):
+         # Create filepath of files in directory
+         file_path = os.path.join(folder_name, filename)
+         # Add files to zip file
+         zip_object.write(file_path, os.path.basename(file_path))
+A
