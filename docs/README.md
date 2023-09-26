@@ -7,11 +7,11 @@
     |______||_|  |__|_______|___|  |_|__| |__|_______|_______|_______|_______|
 
 
-A pure python tool for finding and comparing typo-squatting, bytesqatting, and homoglyph domains for detecting brand impersonation
+A pure python tool for finding and comparing typo-squatting, bitsqatting, and homoglyph domains for detecting brand impersonation
 
 ![DNSRazzle](/docs/dnsrazzle.gif)
 
-DNSrazzle's DNS fuzzing is an automated workflow for discovering potentially malicious domains targeting your organisation. This tool works by using dnstwists permutation engine to generating a large list of permutations based on a domain name you provide, and then checking if any of those permutations are in use. Additionally, it generates screenshots of the original domain, and the discovered web pages, and compares them using computer vision to see if they are part of an ongoing phishing attack or brand impersonation, and much more!
+DNSrazzle's DNS fuzzing is an automated workflow for discovering potentially malicious domains targeting your organisation. This tool works by using dnstwists permutation engine to generate a large list of permutations based on a domain name you provide, and then checking if any of those permutations are in use. Additionally, it generates screenshots of the original domain, and the discovered web pages, and compares them using computer vision to see if they are part of an ongoing phishing attack or brand impersonation, and much more!
 
 ## Version 1.5.x+ note
 DNSRazzle no longer outputs all the discovered domains and their info and scores to console, it is now placed in a CSV file so you can start a DNSRazzle run and go do something else instead of having to babysit it to get the scores and DNS info.
