@@ -157,7 +157,7 @@ def main():
     for entry in domain_raw_list:
         razzle = DnsRazzle(domain=str(entry), out_dir=out_dir, tld=tld, dictionary=dictionary, file=arguments.file,
                 useragent=useragent, debug=debug, threads=threads, nmap=nmap, recon=recon, driver=driver,
-                nameserver=nameserver)
+                nameserver=nameserver, email=email, screenshot=screenshot)
         razzles.append(razzle)
         razzle.generate_fuzzed_domains()
         bar.next()
