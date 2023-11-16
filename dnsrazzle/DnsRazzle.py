@@ -113,7 +113,7 @@ class DnsRazzle():
                 callback()
             worker.join()
 
-    def check_domains(self, progress_callback=None):
+    def check_domains(self, screenshot, progress_callback=None):
         if screenshot:
             success = screenshot_domain(driver=self.driver, domain=self.domain, out_dir=self.out_dir + '/screenshots/originals/')
             # if not success:
@@ -127,7 +127,7 @@ class DnsRazzle():
         else:
             exit()
 
-    def check_domain(self, domain_entry, progress_callback=None):
+    def check_domain(self, domain_entry, screenshot, progress_callback=None):
         if screenshot:
             success = screenshot_domain(driver=self.driver, domain=domain_entry['domain-name'], out_dir=self.out_dir + '/screenshots/')
             if success:
