@@ -60,6 +60,8 @@ def main():
     parser.add_argument('-d', '--domain', type=str, dest='domain', help='Target domain or domain list.')
     parser.add_argument('-D', '--dictionary', type=str, dest='dictionary', metavar='FILE', default=[],
                         help='Path to dictionary file to pass to DNSTwist to aid in domain permutation generation.')
+    parser.add_argument('-e', '--email', dest='email', action='store_true', default=False,
+                        help='Tell DNSRazzle to email the reports when completed.  Requires configuration in etc/mail_config.conf')
     parser.add_argument('-f', '--file', type=str, dest='file', metavar='FILE', default=None,
                         help='Provide a file containing a list of domains to run DNSrazzle on.')
     parser.add_argument('-g', '--generate', dest='generate', action='store_true', default=False,
@@ -68,8 +70,10 @@ def main():
                         help='Perform nmap scan on discovered domains.')
     parser.add_argument('-N', '--ns', dest='nameserver', metavar='STRING', type=str, default='1.1.1.1',
                         help='Specify DNS nameserver to use for DNS queries')
+    parser.add_argument('--noss', dest='screenshot', action='store_true', default=False,
+                        help='Do not take screenshots of discovered domains.  Only collect DNS and banner info')
     parser.add_argument('-o', '--out-directory', type=str, dest='out_dir', default=None,
-                        help='Absolute path of directory to output reports to.  Will be created if doesn\'t exist.'),
+                        help='Absolute path of directory to output reports to.  Will be created if doesn\'t exist.')
     parser.add_argument('-r', '--recon', dest = 'recon', action = 'store_true', default = False,
                         help = 'Create dnsrecon report on discovered domains.')
     parser.add_argument('-t', '--threads', dest='threads', type=int, default=10,
@@ -89,6 +93,8 @@ def main():
     nameserver = arguments.nameserver
     nmap = arguments.nmap
     recon = arguments.recon
+    email = arguments.email
+    screenshot = arguments.screenshot
     driver = None
 
     def _exit(code):
