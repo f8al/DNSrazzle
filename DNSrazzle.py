@@ -203,7 +203,7 @@ def main():
 
     print_status("Collecting and analyzing web screenshots")
 
-    if driver is None:
+    if driver is None and screenshot is True:
         driver = BrowserUtil.get_webdriver(arguments.browser)
 
     with open(file=out_dir + "/domain_similarity.csv", mode="w") as f:
