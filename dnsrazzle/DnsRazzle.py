@@ -42,7 +42,7 @@ import queue
 from pathlib import Path
 
 class DnsRazzle():
-    def __init__(self, domain, out_dir, tld, dictionary, file, useragent, debug, threads, nmap, recon, driver, nameserver = '1.1.1.1', email, screenshot):
+    def __init__(self, domain, out_dir, tld, dictionary, file, useragent, debug, threads, nmap, recon, driver, email, screenshot, nameserver = '1.1.1.1'):
         self.domains = []
         self.domain = domain
         self.out_dir = out_dir
