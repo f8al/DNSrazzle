@@ -201,7 +201,7 @@ def main():
                 writer.writerow(d)
     print_good(f"Domain data written to {out_dir}/discovered-domains.csv")
 
-    if screenshot is True:
+    if screenshot:
         print_status("Collecting and analyzing web screenshots")
         if driver is None:
             driver = BrowserUtil.get_webdriver(arguments.browser)
