@@ -201,19 +201,19 @@ def main():
                 writer.writerow(d)
     print_good(f"Domain data written to {out_dir}/discovered-domains.csv")
 
-    print_status("Collecting and analyzing web screenshots")
+    if screenshot:
+        print_status("Collecting and analyzing web screenshots")
+        if driver is None:
+            driver = BrowserUtil.get_webdriver(arguments.browser)
 
-    if driver is None and screenshot is True:
-        driver = BrowserUtil.get_webdriver(arguments.browser)
+        with open(file=out_dir + "/domain_similarity.csv", mode="w") as f:
+            f.write("original_domain,discovered_domain,similarity_score\n")
 
-    with open(file=out_dir + "/domain_similarity.csv", mode="w") as f:
-        f.write("original_domain,discovered_domain,similarity_score\n")
-
-    for razzle in razzles:
-        razzle.driver = driver
-        razzle.check_domains(check_domain_callback)
-    BrowserUtil.quit_webdriver(driver)
-    print_good(f"Visual analysis saved to {out_dir}/domain_similarity.csv")
+        for razzle in razzles:
+            razzle.driver = driver
+            razzle.check_domains(check_domain_callback)
+        BrowserUtil.quit_webdriver(driver)
+        print_good(f"Visual analysis saved to {out_dir}/domain_similarity.csv")
 
     if arguments.blocklist:
         print_status("Compiling blocklist")
