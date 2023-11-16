@@ -113,30 +113,27 @@ class DnsRazzle():
             worker.join()
 
     def check_domains(self, progress_callback=None):
-        if self.screenshot:
             success = screenshot_domain(driver=self.driver, domain=self.domain, out_dir=self.out_dir + '/screenshots/originals/')
-            # if not success:
-            #     # The original domain could not be screenshotted, therefore it is
-            #     # impossible to do a comparison with any of its variations.
-            #     return False
-            for d in self.domains:
-                if d['domain-name'] != self.domain and 'dns-a' in d.keys() and '!ServFail' not in d['dns-a']:
-                    self.check_domain(domain_entry=d, progress_callback=progress_callback)
-            return True
-        else:
-            exit()
+        # if not success:
+        #     # The original domain could not be screenshotted, therefore it is
+        #     # impossible to do a comparison with any of its variations.
+        #     return False
+        for d in self.domains:
+            if d['domain-name'] != self.domain and 'dns-a' in d.keys() and '!ServFail' not in d['dns-a']:
+                self.check_domain(domain_entry=d, progress_callback=progress_callback)
+        return True
+        exit()
 
     def check_domain(self, domain_entry, progress_callback=None):
-        if self.screenshot:
-            success = screenshot_domain(driver=self.driver, domain=domain_entry['domain-name'], out_dir=self.out_dir + '/screenshots/')
-            if success:
-                original_png = self.out_dir + '/screenshots/originals/' + self.domain + '.png'
-                if Path(original_png).is_file():
-                    ssim_score = compare_screenshots(imageA=original_png,
-                                                imageB=self.out_dir + '/screenshots/' + domain_entry['domain-name'] + '.png')
-                    domain_entry['ssim-score'] = ssim_score
-                if progress_callback:
-                    progress_callback(self, domain_entry)        
+        success = screenshot_domain(driver=self.driver, domain=domain_entry['domain-name'], out_dir=self.out_dir + '/screenshots/')
+        if success:
+            original_png = self.out_dir + '/screenshots/originals/' + self.domain + '.png'
+            if Path(original_png).is_file():
+                ssim_score = compare_screenshots(imageA=original_png,
+                                                 imageB=self.out_dir + '/screenshots/' + domain_entry['domain-name'] + '.png')
+                domain_entry['ssim-score'] = ssim_score
+            if progress_callback:
+                progress_callback(self, domain_entry)        
         if self.nmap:
             run_portscan(domain_entry['domain-name'], self.out_dir)
         if self.recon:
