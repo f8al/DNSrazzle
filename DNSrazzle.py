@@ -155,7 +155,7 @@ def main():
     razzles: list[DnsRazzle] = []
     bar = Bar(f'Generating possible domain name impersonations…', max=len(domain_raw_list))
     for entry in domain_raw_list:
-        razzle = DnsRazzle(domain=str(entry), email=email, screenshot=screenshot, out_dir=out_dir, tld=tld, dictionary=dictionary, file=arguments.file,
+        razzle = DnsRazzle(domain=str(entry), email=email, out_dir=out_dir, tld=tld, dictionary=dictionary, file=arguments.file,
                 useragent=useragent, debug=debug, threads=threads, nmap=nmap, recon=recon, driver=driver,
                 nameserver=nameserver)
         razzles.append(razzle)
