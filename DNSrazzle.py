@@ -61,7 +61,7 @@ def main():
     parser.add_argument('-D', '--dictionary', type=str, dest='dictionary', metavar='FILE', default=[],
                         help='Path to dictionary file to pass to DNSTwist to aid in domain permutation generation.')
     parser.add_argument('-e', '--email', dest='email', action='store_true', default=False,
-                        help='Tell DNSRazzle to email the reports when completed.  Requires configuration in etc/mail_config.conf')
+                        help='Tell DNSRazzle to email the reports when completed.  Requires configuration in etc/mail_config.conf.')
     parser.add_argument('-f', '--file', type=str, dest='file', metavar='FILE', default=None,
                         help='Provide a file containing a list of domains to run DNSrazzle on.')
     parser.add_argument('-g', '--generate', dest='generate', action='store_true', default=False,
@@ -155,9 +155,9 @@ def main():
     razzles: list[DnsRazzle] = []
     bar = Bar(f'Generating possible domain name impersonations…', max=len(domain_raw_list))
     for entry in domain_raw_list:
-        razzle = DnsRazzle(domain=str(entry), out_dir=out_dir, tld=tld, dictionary=dictionary, file=arguments.file,
+        razzle = DnsRazzle(domain=str(entry), email=email, screenshot=screenshot, out_dir=out_dir, tld=tld, dictionary=dictionary, file=arguments.file,
                 useragent=useragent, debug=debug, threads=threads, nmap=nmap, recon=recon, driver=driver,
-                nameserver=nameserver, email=email, screenshot=screenshot)
+                nameserver=nameserver)
         razzles.append(razzle)
         razzle.generate_fuzzed_domains()
         bar.next()
