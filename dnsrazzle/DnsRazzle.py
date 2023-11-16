@@ -42,7 +42,7 @@ import queue
 from pathlib import Path
 
 class DnsRazzle():
-    def __init__(self, domain, out_dir, tld, dictionary, file, useragent, debug, threads, nmap, recon, driver, email, screenshot, nameserver = '1.1.1.1'):
+    def __init__(self, domain, out_dir, tld, dictionary, file, useragent, debug, threads, nmap, recon, driver, email, nameserver = '1.1.1.1'):
         self.domains = []
         self.domain = domain
         self.out_dir = out_dir
@@ -60,7 +60,6 @@ class DnsRazzle():
         self.nameserver = nameserver
         self.driver = driver
         self.email = email
-        self.screenshot = screenshot
 
     def generate_fuzzed_domains(self):
         from dnstwist import DomainFuzz
