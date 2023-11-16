@@ -59,7 +59,6 @@ class DnsRazzle():
         self.recon = recon
         self.nameserver = nameserver
         self.driver = driver
-        self.email = email
 
     def generate_fuzzed_domains(self):
         from dnstwist import DomainFuzz
