@@ -70,7 +70,7 @@ def main():
                         help='Perform nmap scan on discovered domains.')
     parser.add_argument('-N', '--ns', dest='nameserver', metavar='STRING', type=str, default='1.1.1.1',
                         help='Specify DNS nameserver to use for DNS queries')
-    parser.add_argument('--noss', dest='screenshot', action='store_true', default=False,
+    parser.add_argument('--noss', dest='screenshot', action='store_false', default=False,
                         help='Do not take screenshots of discovered domains.  Only collect DNS and banner info')
     parser.add_argument('-o', '--out-directory', type=str, dest='out_dir', default=None,
                         help='Absolute path of directory to output reports to.  Will be created if doesn\'t exist.')
@@ -155,7 +155,7 @@ def main():
     razzles: list[DnsRazzle] = []
     bar = Bar(f'Generating possible domain name impersonations…', max=len(domain_raw_list))
     for entry in domain_raw_list:
-        razzle = DnsRazzle(domain=str(entry), email=email, out_dir=out_dir, tld=tld, dictionary=dictionary, file=arguments.file,
+        razzle = DnsRazzle(domain=str(entry), out_dir=out_dir, tld=tld, dictionary=dictionary, file=arguments.file,
                 useragent=useragent, debug=debug, threads=threads, nmap=nmap, recon=recon, driver=driver,
                 nameserver=nameserver)
         razzles.append(razzle)
@@ -201,7 +201,7 @@ def main():
                 writer.writerow(d)
     print_good(f"Domain data written to {out_dir}/discovered-domains.csv")
 
-    if screenshot:
+    if screenshot is True:
         print_status("Collecting and analyzing web screenshots")
         if driver is None:
             driver = BrowserUtil.get_webdriver(arguments.browser)
