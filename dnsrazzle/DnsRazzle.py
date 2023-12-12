@@ -121,7 +121,6 @@ class DnsRazzle():
             if d['domain-name'] != self.domain and 'dns-a' in d.keys() and '!ServFail' not in d['dns-a']:
                 self.check_domain(domain_entry=d, progress_callback=progress_callback)
         return True
-        exit()
 
     def check_domain(self, domain_entry, progress_callback=None):
         success = screenshot_domain(driver=self.driver, domain=domain_entry['domain-name'], out_dir=self.out_dir + '/screenshots/')
