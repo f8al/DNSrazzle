@@ -198,7 +198,8 @@ def main():
                 writer.writeheader()
                 header_written = True
             for d in razzle.domains:
-                writer.writerow(d)
+                if d['domain-name'] != razzle.domain and 'dns-a' in d.keys() and '!ServFail' not in d['dns-a']:
+                    writer.writerow(d)
     print_good(f"Domain data written to {out_dir}/discovered-domains.csv")
 
     if not no_screenshot:
