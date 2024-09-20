@@ -19,12 +19,12 @@ DNSRazzle no longer outputs all the discovered domains and their info and scores
 
 # Installation steps
 ```
-$ git clone https://github.com/f8al/DNSRazzle
-$ cd DNSRazzle
-$ python3 -m venv .
-$ source bin/activate
-$ pip3 install --upgrade pip
-$ pip3 install -r requirements.txt
+git clone https://github.com/f8al/DNSRazzle
+cd DNSRazzle
+python3 -m venv .
+source bin/activate
+pip3 install --upgrade pip
+pip3 install -r requirements.txt
 ```
 
 
