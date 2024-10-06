@@ -35,15 +35,17 @@ __author__ = 'SecurityShrimp'
 __twitter__ = '@securityshrimp'
 __email__ = 'securityshrimp@proton.me'
 
+from whoisdomain import query
+from .IOUtil import print_error, reset_tty, print_status, write_to_file
+from recondns import general_enum, DnsHelper, make_csv
+import nmap
 
 def run_whois(domains, nameserver, progress_callback=None):
     for domain in domains:
         if len(domain) > 2:
             try:
-                from whoisdomain import query
                 whoisq = query(domain=domain['domain-name'].encode('idna').decode())
             except Exception as e:
-                from .IOUtil import print_error, reset_tty
                 print_error(f"Failed to run WHOIS query for {domain['domain-name']}")
                 print_error(e)
                 reset_tty()
@@ -58,9 +60,7 @@ def run_whois(domains, nameserver, progress_callback=None):
 
 
 def run_portscan(domains, out_dir):
-    from .IOUtil import print_status
     print_status(f"Running nmap on {domains}")
-    import nmap
     nm = nmap.PortScanner()
     nm.scan(hosts=domains, arguments='-A -T4 -sV')
     f = open(out_dir + '/nmap/' + domains + '.csv', "w")
@@ -75,10 +75,7 @@ def run_recondns(domains, nameserver, out_dir, threads):
     general_enum arguments : res, domain, do_axfr, do_bing, do_yandex, do_spf, do_whois, do_crt, zw, thread_num=None
     :return:
     '''
-    from .IOUtil import print_status,  write_to_file
     print_status(f'Running reconDNS report on {domains}!')
-
-    from recondns import general_enum, DnsHelper, make_csv
     ns_server = [nameserver]
     request_timeout = 10
     proto = 'udp'
