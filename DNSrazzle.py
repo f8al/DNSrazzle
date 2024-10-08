@@ -220,7 +220,7 @@ def main():
         print_status("Compiling blocklist")
         for razzle in razzles:
             for domain in razzle.domains:
-                if domain['ssim-score'] is not None and domain['ssim-score'] >= arguments.blocklist_pct:
+                if 'ssim-score' in domain and domain['ssim-score'] is not None and domain['ssim-score'] >= arguments.blocklist_pct:
                     with open(out_dir + "/blocklist.csv", "a") as f:
                         for field in ['dns-a', 'dns-aaaa', 'dns-ns', 'dns-mx']:
                             if field in domain:
