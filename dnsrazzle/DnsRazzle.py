@@ -40,6 +40,7 @@ from .NetUtil import run_portscan, run_recondns, run_whois
 from .VisionUtil import compare_screenshots
 import queue
 from pathlib import Path
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 class DnsRazzle():
     def __init__(self, domain, out_dir, tld, dictionary, file, useragent, debug, threads, nmap, recon, driver, nameserver = '1.1.1.1'):
@@ -73,8 +74,11 @@ class DnsRazzle():
             m()
         self.domains = fuzz.domains
 
-    def whois(self, progress_callback):
-        run_whois(domains=self.domains, nameserver=self.nameserver, progress_callback=progress_callback)
+    def whois(self, progress_callback=None):
+        with ThreadPoolExecutor(max_workers=self.threads) as executor:
+            futures = [executor.submit(run_whois, domains=[domain], nameserver=self.nameserver, progress_callback=progress_callback) for domain in self.domains]
+            for future in as_completed(futures):
+                future.result()
 
     def gendom_start(self):
         from dnstwist import DomainThread, UrlParser
