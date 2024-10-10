@@ -44,7 +44,7 @@ def run_whois(domains, nameserver, progress_callback=None):
     for domain in domains:
         if len(domain) > 2:
             try:
-                whoisq = query(domain=domain['domain-name'].encode('idna').decode(),timeout=5)
+                whoisq = query(domain=domain['domain-name'].encode('idna').decode(),timeout=10,simplistic=True)
             except Exception as e:
                 print_error(f"Failed to run WHOIS query for {domain['domain-name']}")
                 print_error(e)
