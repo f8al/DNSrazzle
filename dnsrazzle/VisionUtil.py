@@ -66,9 +66,11 @@ def compare_screenshots(imageA, imageB):
         return score
 
     except cv2.error as e:
-        print_error(e.msg)
+        #print_error(e.msg)
+        None
 
     except ValueError as ve:
-        print_error(ve.msg)
+        #print_error(ve.msg)
+        None
 
     return None
