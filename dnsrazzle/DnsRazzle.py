@@ -65,6 +65,11 @@ class DnsRazzle():
         from dnstwist import DomainFuzz
         fuzz = DomainFuzz(self.domain, self.dictionary, self.tld)
         fuzz.generate()
+        # Add additional fuzzing options (2-letter additions)
+        for i in range(97, 123):
+            for j in range(97, 123):
+                new_domain = ".".join(self.domain.split(".")[:-1]) + chr(i) + chr(j) + "." + self.domain.split(".")[-1];
+                fuzz.domains.append({"fuzzer": 'addition', "domain-name": new_domain})
         if self.tld is not None:
             for entry in fuzz.domains.copy():
                 for tld in self.tld:
@@ -135,7 +140,7 @@ class DnsRazzle():
                                                  imageB=self.out_dir + '/screenshots/' + domain_entry['domain-name'] + '.png')
                 domain_entry['ssim-score'] = ssim_score
             if progress_callback:
-                progress_callback(self, domain_entry)        
+                progress_callback(self, domain_entry)
         if self.nmap:
             run_portscan(domain_entry['domain-name'], self.out_dir)
         if self.recon:
