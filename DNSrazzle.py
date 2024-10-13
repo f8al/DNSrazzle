@@ -46,6 +46,7 @@ from progress.bar import Bar
 from dnsrazzle import BrowserUtil, IOUtil
 from dnsrazzle.DnsRazzle import DnsRazzle
 from dnsrazzle.IOUtil import print_error, print_good, print_status
+model = None
 
 def main():
     os.environ['WDM_LOG_LEVEL'] = '0'
@@ -80,6 +81,8 @@ def main():
                         help='Number of threads to use in permutation checks, reverse lookups, forward lookups, brute force and SRV record enumeration.')
     parser.add_argument('--tld', type=str, dest='tld', metavar='FILE', default=[],
                         help='Path to TLD dictionary file.')
+    parser.add_argument('--yolo', type=str, dest='yolo', metavar='FILE', default=[],
+                        help='Path to YOLO weights file (best.pt)')
     parser.add_argument('-u', '--useragent', type=str, metavar='STRING', default='Mozilla/5.0 dnsrazzle/%s' % __version__,
                         help='User-Agent STRING to send with HTTP requests. Default is Mozilla/5.0 dnsrazzle/%s)' % __version__)
     parser.add_argument('--debug', dest='debug', action='store_true', default=False, help='Print debug messages')
@@ -112,7 +115,7 @@ def main():
 
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
-    
+
     if debug:
         os.environ['WDM_LOG_LEVEL'] = '4'
     # First, you need to put the domains to be scanned into the "domains_to_scan" variable
@@ -151,6 +154,14 @@ def main():
         with open(arguments.tld) as f:
             tld = set(f.read().splitlines())
             tld = [x for x in tld if x.isalpha()]
+
+    if arguments.yolo and not no_screenshot:
+        if not os.path.exists(arguments.yolo):
+            parser.error('Yolo weights file not found: %s' % arguments.yolo)
+        from ultralytics import YOLO
+        # Load the trained YOLOv8 model
+        global model
+        model = YOLO(arguments.yolo)
 
     razzles: list[DnsRazzle] = []
     bar = Bar(f'Generating possible domain name impersonations…', max=len(domain_raw_list))
@@ -208,7 +219,7 @@ def main():
             driver = BrowserUtil.get_webdriver(arguments.browser)
 
         with open(file=out_dir + "/domain_similarity.csv", mode="w") as f:
-            f.write("original_domain,discovered_domain,similarity_score\n")
+            f.write("original_domain,discovered_domain,similarity_score,logo_detection\n")
 
         for razzle in razzles:
             razzle.driver = driver
@@ -241,9 +252,16 @@ def check_domain_callback(razzle: DnsRazzle, domain_entry):
         adj = "identical to"
     elif rounded_score >= .90:
         adj = "similar to"
-    print_status(f"{siteB} is {adj} {siteA} with a score of {rounded_score}!")
+    global model
+    if model is not None:
+        # Check if logo is present
+        path_to_screenshot = domain_entry['screenshot']
+        logo_present = razzle.detect_logo(path_to_screenshot, model)
+    else:
+        logo_present = "Logo presence not checked."
+    print_status(f"{siteB} is {adj} {siteA} with a score of {rounded_score}. {logo_present}")
     with open(file=razzle.out_dir + "/domain_similarity.csv", mode="a") as f:
-        f.write(f"{siteA},{siteB},{rounded_score}\n")
+        f.write(f"{siteA},{siteB},{rounded_score},{logo_present}\n")
 
 if __name__ == "__main__":
     main()

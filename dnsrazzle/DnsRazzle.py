@@ -41,6 +41,7 @@ from .VisionUtil import compare_screenshots
 import queue
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor, as_completed
+import os
 
 class DnsRazzle():
     def __init__(self, domain, out_dir, tld, dictionary, file, useragent, debug, threads, nmap, recon, driver, nameserver = '1.1.1.1'):
@@ -139,9 +140,21 @@ class DnsRazzle():
                 ssim_score = compare_screenshots(imageA=original_png,
                                                  imageB=self.out_dir + '/screenshots/' + domain_entry['domain-name'] + '.png')
                 domain_entry['ssim-score'] = ssim_score
+                domain_entry['screenshot'] = self.out_dir + '/screenshots/' + domain_entry['domain-name'] + '.png'
             if progress_callback:
                 progress_callback(self, domain_entry)
         if self.nmap:
             run_portscan(domain_entry['domain-name'], self.out_dir)
         if self.recon:
             run_recondns(domain_entry['domain-name'], self.nameserver, self.out_dir, self.threads)
+
+    def detect_logo(self, image_path, model, conf_threshold=0.85):
+        if not os.path.exists(image_path):
+            print(f"Error: The image '{image_path}' does not exist.")
+            return "Error in logo detection."
+        results = model.predict(image_path, conf=conf_threshold, verbose=False)
+        detections = results[0].boxes  # Detections in the first image
+        if len(detections) > 0:
+            return "Logo detected."
+        else:
+            return "Logo not detected."
