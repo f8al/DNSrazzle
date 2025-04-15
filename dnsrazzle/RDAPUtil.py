@@ -109,3 +109,57 @@ class RDAPClient:
         except ValueError:
             print(f"[!] Failed to decode RDAP response for {domain}")
         return None
+
+
+from datetime import datetime
+def extract_rdap_fields(rdap_data):
+    """
+    Extract registrar, registration date, updated date, and name servers
+    from RDAP response. Returns dict with normalized values or None.
+    """
+    if not rdap_data:
+        return None
+
+    result = {
+        "registrar": None,
+        "registration_date": None,
+        "updated_date": None,
+        "nameservers": []
+    }
+
+    # Registrar
+    if "entities" in rdap_data:
+        for entity in rdap_data["entities"]:
+            roles = entity.get("roles", [])
+            if "registrar" in roles:
+                vcard_array = entity.get("vcardArray")
+                if vcard_array and isinstance(vcard_array, list) and len(vcard_array) > 1:
+                    for item in vcard_array[1]:
+                        if item[0] == "fn":
+                            result["registrar"] = item[3]
+                            break
+                if result["registrar"]:
+                    break
+
+    # Registration and updated dates
+    for event in rdap_data.get("events", []):
+        action = event.get("eventAction", "").lower()
+        date = event.get("eventDate")
+        if not date:
+            continue
+        try:
+            parsed_date = datetime.fromisoformat(date.replace("Z", "+00:00"))
+        except Exception:
+            parsed_date = date  # Fallback to raw string if parsing fails
+        if action == "registration":
+            result["registration_date"] = parsed_date
+        elif action in ["last changed", "last update of rdap database", "last changed of registration"]:
+            result["updated_date"] = parsed_date
+
+    # Name servers
+    for ns in rdap_data.get("nameservers", []):
+        ldh_name = ns.get("ldhName")
+        if ldh_name:
+            result["nameservers"].append(ldh_name.lower())
+
+    return result
