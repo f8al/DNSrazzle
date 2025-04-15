@@ -37,24 +37,51 @@ __email__ = 'securityshrimp@proton.me'
 
 
 def run_whois(domains, nameserver, progress_callback=None):
+    from .RDAPUtil import RDAPClient, extract_rdap_fields
+    from .IOUtil import print_error, reset_tty
+
+    rdap = RDAPClient()
+
     for domain in domains:
         if len(domain) > 2:
             try:
-                from whoisdomain import query
-                whoisq = query(domain=domain['domain-name'].encode('idna').decode())
+                rdap_data = rdap.lookup(domain['domain-name'].encode('idna').decode())
+                parsed = extract_rdap_fields(rdap_data)
             except Exception as e:
-                from .IOUtil import print_error, reset_tty
-                print_error(f"Failed to run WHOIS query for {domain['domain-name']}")
+                print_error(f"Failed to run RDAP lookup for {domain['domain-name']}")
                 print_error(e)
                 reset_tty()
-            else:
-                if whoisq is not None:
-                    if whoisq.creation_date:
-                        domain['whois-created'] = str(whoisq.creation_date).split(' ')[0]
-                    if whoisq.registrar:
-                        domain['whois-registrar'] = str(whoisq.registrar)
+                continue
+
+            if parsed:
+                if parsed.get('registration_date'):
+                    domain['whois-created'] = str(parsed['registration_date']).split(' ')[0]
+                if parsed.get('registrar'):
+                    domain['whois-registrar'] = str(parsed['registrar'])
+
         if progress_callback is not None:
             progress_callback()
+
+
+#def run_whois(domains, nameserver, progress_callback=None):
+#    for domain in domains:
+#        if len(domain) > 2:
+#            try:
+#                from whoisdomain import query
+#                whoisq = query(domain=domain['domain-name'].encode('idna').decode())
+#            except Exception as e:
+#                from .IOUtil import print_error, reset_tty
+#                print_error(f"Failed to run WHOIS query for {domain['domain-name']}")
+#                print_error(e)
+#                reset_tty()
+#            else:
+#                if whoisq is not None:
+#                    if whoisq.creation_date:
+#                        domain['whois-created'] = str(whoisq.creation_date).split(' ')[0]
+#                    if whoisq.registrar:
+#                        domain['whois-registrar'] = str(whoisq.registrar)
+#        if progress_callback is not None:
+#            progress_callback()
 
 
 def run_portscan(domains, out_dir):

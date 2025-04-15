@@ -62,6 +62,8 @@ class RDAPClient:
                     urls = entry[1]
                     for tld in tlds:
                         RDAPClient._rdap_endpoints[tld.lower()] = urls[0].rstrip("/") + "/"
+                # print(f"Loaded RDAP endpoints for {len(RDAPClient._rdap_endpoints)} TLDs")
+                # print("COM RDAP endpoint:", RDAPClient._rdap_endpoints.get("com"))
             except requests.RequestException:
                 # Avoid leaking internal exception details
                 print("[!] Failed to fetch RDAP bootstrap data from IANA.")
@@ -91,6 +93,7 @@ class RDAPClient:
         Returns RDAP JSON or None on failure.
         """
         rdap_url = self._get_rdap_url_for_domain(domain)
+        print(f"[DEBUG] RDAP URL for {domain}: {rdap_url}")
         if not rdap_url:
             print(f"[!] Invalid or unsupported domain: {domain}")
             return None
