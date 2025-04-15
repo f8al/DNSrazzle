@@ -69,6 +69,6 @@ def compare_screenshots(imageA, imageB):
         print_error(e.msg)
 
     except ValueError as ve:
-        print_error(ve.msg)
+        print_error(str(ve))
 
     return None
