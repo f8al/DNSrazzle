@@ -78,3 +78,19 @@ def get_webdriver(browser_name):
     except Exception as E:
         print_error(f"Failed to start {browser_name} driver: {E}")
         return None
+
+def screenshot_domain(driver, domain, out_dir):
+    """
+    function to take screenshot of supplied domain
+    """
+    url = "http://" + str(domain).strip('[]')
+    try:
+        driver.set_page_load_timeout(10)
+        driver.get(url)
+        ss_path = str(out_dir + domain + '.png')
+        driver.get_screenshot_as_file(ss_path)
+        return True
+    except WebDriverException as exception:
+        print_error(f"Unable to screenshot {domain}. {exception.msg}")
+        # print_debug(exception.msg)
+        return False
