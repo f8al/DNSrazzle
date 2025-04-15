@@ -96,3 +96,11 @@ def screenshot_domain(driver, domain, out_dir):
         print_error(f"Unable to screenshot {domain}. {exception.msg}")
         # print_debug(exception.msg)
         return False
+
+
+def quit_webdriver(driver):
+    try:
+        if driver:
+            driver.quit()
+    except Exception as e:
+        print_error(f"Error while quitting WebDriver: {e}")
