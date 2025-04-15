@@ -36,6 +36,7 @@ __twitter__ = '@securityshrimp'
 __email__ = 'securityshrimp@proton.me'
 
 from .IOUtil import print_debug, print_error
+from selenium.common.exceptions import WebDriverException
 
 def get_webdriver(browser_name):
     from fake_useragent import UserAgent
