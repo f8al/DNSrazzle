@@ -6,6 +6,14 @@
     |       | | |   |_____| |   |  | |   _   | |_____| |_____|       |   |___ 
     |______||_|  |__|_______|___|  |_|__| |__|_______|_______|_______|_______|
 
+---
+# Update as of 04/15/2025 
+Verisign implemented rate limiting on their whois servers for the .com, .org, and .net TLD's earlier in the year which causes this tool to either take an incredibly long time or not be able to get proper whois data.
+I intend to fix it, but this will take a partial fundamental rewrite, which I currently do not have the time to do, but when I do get time this will be fixed. Likely in q2 of 2024.
+---
+
+
+
 
 A pure python tool for finding and comparing typo-squatting, bitsqatting, and homoglyph domains for detecting brand impersonation
 
