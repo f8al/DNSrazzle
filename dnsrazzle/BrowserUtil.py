@@ -35,6 +35,7 @@ __author__ = 'SecurityShrimp'
 __twitter__ = '@securityshrimp'
 __email__ = 'securityshrimp@proton.me'
 
+from .IOUtil import print_debug, print_error
 
 def get_webdriver(browser_name):
     from fake_useragent import UserAgent
