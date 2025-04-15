@@ -99,6 +99,8 @@ def screenshot_domain(driver, domain, out_dir):
 
 
 def quit_webdriver(driver):
+    if driver is None:
+        return
     try:
         if driver:
             driver.quit()
