@@ -36,6 +36,7 @@ __twitter__ = '@securityshrimp'
 __email__ = 'securityshrimp@proton.me'
 
 from .IOUtil import print_debug, print_error
+from selenium.common.exceptions import WebDriverException
 
 def get_webdriver(browser_name):
     from fake_useragent import UserAgent
@@ -44,7 +45,6 @@ def get_webdriver(browser_name):
     from selenium.webdriver.firefox.service import Service as FirefoxService
     from selenium.webdriver.chrome.options import Options as ChromeOptions
     from selenium.webdriver.firefox.options import Options as FirefoxOptions
-    from selenium.common.exceptions import WebDriverException
     import selenium
 
     ua = UserAgent()
