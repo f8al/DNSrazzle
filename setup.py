@@ -6,7 +6,7 @@ with open("docs/README.md", "r") as fh:
 
 setup(
 	name='DNSrazzle',
-	version='1.5.3',
+	version='1.6.0',
     license='Apache',
 	author='SecurityShrimp',
 	author_email='securityshrimp@proton.me',
@@ -28,7 +28,6 @@ setup(
                 'webdriver-manager',
                 'matplotlib',
                 'tld',
-                'whoisdomain',
                 'dnspython',
                 'progress',
                 'dnsrecon'],

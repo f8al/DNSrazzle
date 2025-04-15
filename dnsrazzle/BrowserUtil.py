@@ -14,7 +14,7 @@
 Generate, resolve, and compare domain variations to detect typosquatting,
 phishing, and brand impersonation
 
-Copyright 2023 SecurityShrimp
+Copyright 2025 SecurityShrimp LTD, LLC
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -30,23 +30,22 @@ Copyright 2023 SecurityShrimp
 '''
 
 
-__version__ = '1.5.4'
+__version__ = '1.6'
 __author__ = 'SecurityShrimp'
 __twitter__ = '@securityshrimp'
 __email__ = 'securityshrimp@proton.me'
 
 from .IOUtil import print_debug, print_error
 from selenium.common.exceptions import WebDriverException
+from fake_useragent import UserAgent
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service as ChromeService
+from selenium.webdriver.firefox.service import Service as FirefoxService
+from selenium.webdriver.chrome.options import Options as ChromeOptions
+from selenium.webdriver.firefox.options import Options as FirefoxOptions
+import selenium
 
 def get_webdriver(browser_name):
-    from fake_useragent import UserAgent
-    from selenium import webdriver
-    from selenium.webdriver.chrome.service import Service as ChromeService
-    from selenium.webdriver.firefox.service import Service as FirefoxService
-    from selenium.webdriver.chrome.options import Options as ChromeOptions
-    from selenium.webdriver.firefox.options import Options as FirefoxOptions
-    import selenium
-
     ua = UserAgent()
     user_agent = ua.random
 

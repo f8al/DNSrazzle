@@ -7,19 +7,15 @@
     |______||_|  |__|_______|___|  |_|__| |__|_______|_______|_______|_______|
 
 ---
-# Update as of 04/15/2025 
-Verisign implemented rate limiting on their whois servers for the .com, .org, and .net TLD's earlier in the year which causes this tool to either take an incredibly long time or not be able to get proper whois data.
-I intend to fix it, but this will take a partial fundamental rewrite, which I currently do not have the time to do, but when I do get time this will be fixed. Likely in q2 of 2024.
----
-
-
-
-
 A pure python tool for finding and comparing typo-squatting, bitsqatting, and homoglyph domains for detecting brand impersonation
 
 ![DNSRazzle](/docs/dnsrazzle.gif)
 
 DNSrazzle's DNS fuzzing is an automated workflow for discovering potentially malicious domains targeting your organisation. This tool works by using dnstwists permutation engine to generate a large list of permutations based on a domain name you provide, and then checking if any of those permutations are in use. Additionally, it generates screenshots of the original domain, and the discovered web pages, and compares them using computer vision to see if they are part of an ongoing phishing attack or brand impersonation, and much more!
+
+## Version 1.6.x note
+- The selenium webdriver manager package has been deprecated and this project now uses Seleniums own manager, "Selenium Manager"
+- DNSRazzle is now using RDAP instead of WHOIS for returning the registration information after changes made by Verisign regarding rate limiting of their WHOIS servers.  This will be functionally transparent in the output
 
 ## Version 1.5.x+ note
 DNSRazzle no longer outputs all the discovered domains and their info and scores to console, it is now placed in a CSV file so you can start a DNSRazzle run and go do something else instead of having to babysit it to get the scores and DNS info.
