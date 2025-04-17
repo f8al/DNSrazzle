@@ -43,6 +43,7 @@ from selenium.webdriver.chrome.service import Service as ChromeService
 from selenium.webdriver.firefox.service import Service as FirefoxService
 from selenium.webdriver.chrome.options import Options as ChromeOptions
 from selenium.webdriver.firefox.options import Options as FirefoxOptions
+from selenium.webdriver.firefox.firefox_profile import FirefoxProfile
 import selenium
 import tempfile
 import os
@@ -80,7 +81,9 @@ def get_webdriver(browser_name):
 
             print_debug(f"Creating Chrome temp profile at: {temp_profile}")
 
-            driver = webdriver.Chrome(service=ChromeService(), options=options)
+            driver = webdriver.Chrome(
+                service=ChromeService(), 
+                options=options)
             driver.temp_profile_dir = temp_profile  # ✅ now that driver is defined
             print_debug(f"Chrome started successfully using: {temp_profile}")
 
@@ -93,18 +96,24 @@ def get_webdriver(browser_name):
             options.add_argument("--headless")
             options.add_argument("--width=1920")
             options.add_argument("--height=1080")
-            options.add_argument("--no-remote")  # Prevent profile locking issues
 
-            # ✅ Use isolated temp profile
+            # ✅ Isolated temporary profile directory
             base_tmp = "/var/tmp/dnsrazzle-profiles"
             os.makedirs(base_tmp, exist_ok=True)
             temp_profile = tempfile.mkdtemp(dir=base_tmp, prefix="firefox-profile-")
-            options.profile = temp_profile
-            options.set_preference("layers.acceleration.disabled", True)
+
+            profile = FirefoxProfile(temp_profile)
+            profile.set_preference("layers.acceleration.disabled", True)
+
+            # ✅ Assign FirefoxProfile to options correctly
+            options.profile = profile
 
             print_debug(f"Creating Firefox temp profile at: {temp_profile}")
 
-            driver = webdriver.Firefox(service=FirefoxService(), options=options)
+            driver = webdriver.Firefox(
+                service=FirefoxService(),
+                options=options
+            )
             driver.temp_profile_dir = temp_profile
             print_debug(f"Firefox started successfully using: {temp_profile}")
 
