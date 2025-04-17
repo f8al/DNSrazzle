@@ -30,7 +30,7 @@ Copyright 2025 SecurityShrimp LTD, LLC
 '''
 
 
-__version__ = '1.6'
+__version__ = '1.6.0'
 __author__ = 'SecurityShrimp'
 __twitter__ = '@securityshrimp'
 __email__ = 'securityshrimp@proton.me'
@@ -44,6 +44,10 @@ from selenium.webdriver.firefox.service import Service as FirefoxService
 from selenium.webdriver.chrome.options import Options as ChromeOptions
 from selenium.webdriver.firefox.options import Options as FirefoxOptions
 import selenium
+import tempfile
+import os
+import shutil
+import time
 
 def get_webdriver(browser_name):
     ua = UserAgent()
@@ -58,19 +62,54 @@ def get_webdriver(browser_name):
     try:
         if browser_name == 'chrome':
             options = ChromeOptions()
+            options.page_load_strategy = 'normal'
             options.add_argument(f'--user-agent={user_agent}')
             options.add_argument("--window-size=1920,1080")
             options.add_argument("--headless=new")
-            options.page_load_strategy = 'normal'
-            return webdriver.Chrome(service=ChromeService(), options=options)
+            options.add_argument("--no-sandbox")
+            options.add_argument("--disable-dev-shm-usage")
+            options.add_argument("--disable-extensions")
+            options.add_argument("--single-process")
+            options.add_argument("--log-level=3")  # INFO = 0, WARNING = 1, LOG_ERROR = 2, LOG_FATAL = 3
+
+            ## ✅ Hardened temp directory location to avoid /tmp noexec issues
+            base_tmp = "/var/tmp/dnsrazzle-profiles"
+            os.makedirs(base_tmp, exist_ok=True)
+            temp_profile = tempfile.mkdtemp(dir=base_tmp, prefix="chrome-profile-")
+            options.add_argument(f"--user-data-dir={temp_profile}")
+
+            print_debug(f"Creating Chrome temp profile at: {temp_profile}")
+
+            driver = webdriver.Chrome(service=ChromeService(), options=options)
+            driver.temp_profile_dir = temp_profile  # ✅ now that driver is defined
+            print_debug(f"Chrome started successfully using: {temp_profile}")
+
+
+            return driver
 
         elif browser_name == 'firefox':
             options = FirefoxOptions()
             options.add_argument(f'--user-agent={user_agent}')
             options.add_argument("--headless")
+            options.add_argument("--width=1920")
+            options.add_argument("--height=1080")
+            options.add_argument("--no-remote")  # Prevent profile locking issues
+
+            # ✅ Use isolated temp profile
+            base_tmp = "/var/tmp/dnsrazzle-profiles"
+            os.makedirs(base_tmp, exist_ok=True)
+            temp_profile = tempfile.mkdtemp(dir=base_tmp, prefix="firefox-profile-")
+            options.profile = temp_profile
+            options.set_preference("layers.acceleration.disabled", True)
+
+            print_debug(f"Creating Firefox temp profile at: {temp_profile}")
+
             driver = webdriver.Firefox(service=FirefoxService(), options=options)
-            driver.set_window_size(1920, 1080)
+            driver.temp_profile_dir = temp_profile
+            print_debug(f"Firefox started successfully using: {temp_profile}")
+
             return driver
+
 
         else:
             print_error(f"Unsupported browser type: {browser_name}")
@@ -78,30 +117,62 @@ def get_webdriver(browser_name):
 
     except WebDriverException as E:
         print_error(f"Failed to start {browser_name} driver: {E}")
+        # Cleanup on Chrome failure
+        if 'temp_profile' in locals():
+            shutil.rmtree(temp_profile, ignore_errors=True)
         return None
 
-def screenshot_domain(driver, domain, out_dir):
+def screenshot_domain(driver, domain, out_dir, retries=1):
     """
-    function to take screenshot of supplied domain
+    Function to take screenshot of supplied domain.
+    It retries if a known error occurs (e.g. timeout or renderer issues).
     """
-    url = "http://" + str(domain).strip('[]')
-    try:
-        driver.set_page_load_timeout(10)
-        driver.get(url)
-        ss_path = str(out_dir + domain + '.png')
-        driver.get_screenshot_as_file(ss_path)
-        return True
-    except WebDriverException as exception:
-        print_error(f"Unable to screenshot {domain}. {exception.msg}")
-        # print_debug(exception.msg)
+    if not driver:
+        print_error("WebDriver not initialized — skipping screenshot.")
         return False
+
+    url = "http://" + str(domain).strip('[]')
+    ss_path = os.path.join(out_dir, f"{domain}.png")
+    
+    retryable_keywords = [
+        "timeout", 
+        "renderer", 
+        "net::err_address_unreachable", 
+        "net::err_"
+    ]
+
+    for attempt in range(retries + 1):
+        try:
+            driver.set_page_load_timeout(15)
+            driver.get(url)
+            driver.get_screenshot_as_file(ss_path)
+            return True
+
+        except WebDriverException as exception:
+            # 🔧 Use .msg for cleaner error messages, fallback to str()
+            message = getattr(exception, "msg", str(exception)).lower()
+
+            if any(keyword in message for keyword in retryable_keywords):
+                print_error(f"Chrome error while loading {url}: {message}. Retrying... (attempt {attempt + 1} of {retries + 1})")
+                if attempt < retries:
+                    time.sleep(1)
+                    continue
+                else:
+                    print_debug(f"Skipping {domain} after {retries + 1} failed attempts: {message}")
+                    return False
+            else:
+                print_error(f"Unable to screenshot {domain}. {message}")
+                return False
+
+    return False
 
 
 def quit_webdriver(driver):
     if driver is None:
         return
     try:
-        if driver:
-            driver.quit()
+        driver.quit()
+        if hasattr(driver, "temp_profile_dir"):
+            shutil.rmtree(driver.temp_profile_dir, ignore_errors=True)
     except Exception as e:
         print_error(f"Error while quitting WebDriver: {e}")
