@@ -8,11 +8,10 @@
 
 ---
 A pure python tool for finding and comparing typo-squatting, bitsqatting, and homoglyph domains for detecting brand impersonation
-
 ![DNSRazzle](/docs/dnsrazzle.gif)
 
 DNSrazzle's DNS fuzzing is an automated workflow for discovering potentially malicious domains targeting your organisation. This tool works by using dnstwists permutation engine to generate a large list of permutations based on a domain name you provide, and then checking if any of those permutations are in use. Additionally, it generates screenshots of the original domain, and the discovered web pages, and compares them using computer vision to see if they are part of an ongoing phishing attack or brand impersonation, and much more!
-
+## Version 2.0.0 is the final feature release.  No further features will be released in DNSRazzle as it has been replaced by [SecurityShrimp Highlander](https://www.securityshrimp.com/products.html). All future releases to DNSRazzle will be bugfixes
 ## Version 2.0.0 note
 - **Playwright replaces Selenium** for browser automation. After installing dependencies, run `playwright install chromium` (or `firefox`) to set up the browser.
 - **New `url-encoded-slash` (2f) permutation** — detects attackers registering `2fdomain.tld` to abuse URL-encoded slash (`%2F`) in phishing links.
