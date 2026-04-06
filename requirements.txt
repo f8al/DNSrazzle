@@ -7,7 +7,7 @@ certifi>=2020.06.20
 scikit-image>=0.17.0
 netaddr
 lxml
-selenium
+playwright>=1.40.0
 matplotlib
 opencv-python-headless
 numpy
@@ -16,4 +16,3 @@ argparse
 dnstwist==20201228
 progress
 reconDNS>=0.0.3
-fake_useragent

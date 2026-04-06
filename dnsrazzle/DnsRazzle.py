@@ -30,19 +30,19 @@ Copyright 2025 SecurityShrimp LTD, LLC
 '''
 
 
-__version__ = '1.6.0'
+__version__ = '2.0.0'
 __author__ = 'SecurityShrimp'
 __twitter__ = '@securityshrimp'
 __email__ = 'securityshrimp@proton.me'
 
-from .BrowserUtil import screenshot_domain
+from .BrowserUtil import create_browser, screenshot_domain, close_browser, cleanup_playwright
 from .NetUtil import run_portscan, run_recondns, run_whois
 from .VisionUtil import compare_screenshots
 import queue
 from pathlib import Path
 
 class DnsRazzle():
-    def __init__(self, domain, out_dir, tld, dictionary, file, useragent, debug, threads, nmap, recon, driver, nameserver = '1.1.1.1'):
+    def __init__(self, domain, out_dir, tld, dictionary, file, useragent, debug, threads, nmap, recon, nameserver='1.1.1.1', browser_name='chromium'):
         self.domains = []
         self.domain = domain
         self.out_dir = out_dir
@@ -58,7 +58,7 @@ class DnsRazzle():
         self.nmap = nmap
         self.recon = recon
         self.nameserver = nameserver
-        self.driver = driver
+        self.browser_name = browser_name
 
     def generate_fuzzed_domains(self):
         from dnstwist import DomainFuzz
@@ -71,6 +71,18 @@ class DnsRazzle():
                     fuzz.domains.append({"fuzzer": 'tld-swap', "domain-name": new_domain})
             m = getattr(fuzz, "_DomainFuzz__postprocess")
             m()
+
+        # url-encoded-slash (2f) permutation — attackers register 2fdomain.tld
+        # so that https://legit.site/%2Fdomain.tld visually hides the real host
+        original_entry = fuzz.domains[0] if fuzz.domains else None
+        if original_entry:
+            parts = original_entry['domain-name'].split('.')
+            base = parts[0]
+            tld_part = '.'.join(parts[1:])
+            twof_domain = f"2f{base}.{tld_part}"
+            if not any(d['domain-name'] == twof_domain for d in fuzz.domains):
+                fuzz.domains.append({"fuzzer": "url-encoded-slash", "domain-name": twof_domain})
+
         self.domains = fuzz.domains
 
     def whois(self, progress_callback):
@@ -111,27 +123,50 @@ class DnsRazzle():
                 callback()
             worker.join()
 
-    def check_domains(self, progress_callback=None):
-        success = screenshot_domain(driver=self.driver, domain=self.domain, out_dir=self.out_dir + '/screenshots/originals/')
-        # if not success:
-        #     # The original domain could not be screenshotted, therefore it is
-        #     # impossible to do a comparison with any of its variations.
-        #     return False
-        for d in self.domains:
-            if d['domain-name'] != self.domain and 'dns-a' in d.keys() and '!ServFail' not in d['dns-a']:
-                self.check_domain(domain_entry=d, progress_callback=progress_callback)
-        return True
+    async def check_domains(self, progress_callback=None):
+        """Take screenshots of all resolvable domains using Playwright.
 
-    def check_domain(self, domain_entry, progress_callback=None):
-        success = screenshot_domain(driver=self.driver, domain=domain_entry['domain-name'], out_dir=self.out_dir + '/screenshots/')
+        Creates a browser, screenshots the original domain first, then
+        iterates through discovered domains, screenshots each, and runs
+        SSIM comparison against the original.
+        """
+        browser = None
+        try:
+            browser = await create_browser(self.browser_name)
+            if not browser:
+                return False
+
+            # Screenshot the original domain
+            await screenshot_domain(
+                browser=browser, domain=self.domain,
+                out_dir=self.out_dir + '/screenshots/originals/',
+            )
+
+            for d in self.domains:
+                if d['domain-name'] != self.domain and 'dns-a' in d.keys() and '!ServFail' not in d['dns-a']:
+                    await self._check_domain(browser=browser, domain_entry=d, progress_callback=progress_callback)
+
+            return True
+        finally:
+            await close_browser(browser)
+            await cleanup_playwright()
+
+    async def _check_domain(self, browser, domain_entry, progress_callback=None):
+        """Screenshot a single domain and compare against the original."""
+        success = await screenshot_domain(
+            browser=browser, domain=domain_entry['domain-name'],
+            out_dir=self.out_dir + '/screenshots/',
+        )
         if success:
             original_png = self.out_dir + '/screenshots/originals/' + self.domain + '.png'
             if Path(original_png).is_file():
-                ssim_score = compare_screenshots(imageA=original_png,
-                                                 imageB=self.out_dir + '/screenshots/' + domain_entry['domain-name'] + '.png')
+                ssim_score = compare_screenshots(
+                    imageA=original_png,
+                    imageB=self.out_dir + '/screenshots/' + domain_entry['domain-name'] + '.png',
+                )
                 domain_entry['ssim-score'] = ssim_score
             if progress_callback:
-                progress_callback(self, domain_entry)        
+                progress_callback(self, domain_entry)
         if self.nmap:
             run_portscan(domain_entry['domain-name'], self.out_dir)
         if self.recon:

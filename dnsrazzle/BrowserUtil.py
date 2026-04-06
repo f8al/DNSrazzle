@@ -30,158 +30,163 @@ Copyright 2025 SecurityShrimp LTD, LLC
 '''
 
 
-__version__ = '1.6.0'
+__version__ = '2.0.0'
 __author__ = 'SecurityShrimp'
 __twitter__ = '@securityshrimp'
 __email__ = 'securityshrimp@proton.me'
 
-from .IOUtil import print_debug, print_error
-from selenium.common.exceptions import WebDriverException
-from fake_useragent import UserAgent
-from selenium import webdriver
-from selenium.webdriver.chrome.service import Service as ChromeService
-from selenium.webdriver.firefox.service import Service as FirefoxService
-from selenium.webdriver.chrome.options import Options as ChromeOptions
-from selenium.webdriver.firefox.options import Options as FirefoxOptions
-from selenium.webdriver.firefox.firefox_profile import FirefoxProfile
-import selenium
-import tempfile
 import os
-import shutil
-import time
+import random
 
-def get_webdriver(browser_name):
-    ua = UserAgent()
-    user_agent = ua.random
+from playwright.async_api import async_playwright, Browser, TimeoutError as PlaywrightTimeout
+from .IOUtil import print_debug, print_error
 
-    # Ensure Selenium version
-    required_version = (4, 6, 0)
-    current_version = tuple(map(int, selenium.__version__.split(".")[:3]))
-    if current_version < required_version:
-        raise RuntimeError(f"Selenium 4.6.0+ required, found {selenium.__version__}")
+# User-agent rotation list
+_USER_AGENTS = [
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:121.0) Gecko/20100101 Firefox/121.0",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:121.0) Gecko/20100101 Firefox/121.0",
+    "Mozilla/5.0 (X11; Linux x86_64; rv:121.0) Gecko/20100101 Firefox/121.0",
+]
 
+# Module-level Playwright instance (reused across calls within one asyncio.run)
+_playwright_instance = None
+
+
+async def _get_playwright():
+    """Get or create the module-level Playwright instance."""
+    global _playwright_instance
+    if _playwright_instance is None:
+        _playwright_instance = await async_playwright().start()
+    return _playwright_instance
+
+
+async def create_browser(browser_name: str = "chromium") -> Browser | None:
+    """Launch a Playwright browser instance.
+
+    Args:
+        browser_name: "chromium" or "firefox"
+
+    Returns:
+        Browser instance, or None on failure.
+    """
     try:
-        if browser_name == 'chrome':
-            options = ChromeOptions()
-            options.page_load_strategy = 'normal'
-            options.add_argument(f'--user-agent={user_agent}')
-            options.add_argument("--window-size=1920,1080")
-            options.add_argument("--headless=new")
-            options.add_argument("--no-sandbox")
-            options.add_argument("--disable-dev-shm-usage")
-            options.add_argument("--disable-extensions")
-            options.add_argument("--single-process")
-            options.add_argument("--log-level=3")  # INFO = 0, WARNING = 1, LOG_ERROR = 2, LOG_FATAL = 3
+        pw = await _get_playwright()
 
-            ## ✅ Hardened temp directory location to avoid /tmp noexec issues
-            base_tmp = "/var/tmp/dnsrazzle-profiles"
-            os.makedirs(base_tmp, exist_ok=True)
-            temp_profile = tempfile.mkdtemp(dir=base_tmp, prefix="chrome-profile-")
-            options.add_argument(f"--user-data-dir={temp_profile}")
-
-            print_debug(f"Creating Chrome temp profile at: {temp_profile}")
-
-            driver = webdriver.Chrome(
-                service=ChromeService(), 
-                options=options)
-            driver.temp_profile_dir = temp_profile  # ✅ now that driver is defined
-            print_debug(f"Chrome started successfully using: {temp_profile}")
-
-
-            return driver
-
-        elif browser_name == 'firefox':
-            options = FirefoxOptions()
-            options.add_argument(f'--user-agent={user_agent}')
-            options.add_argument("--headless")
-            options.add_argument("--width=1920")
-            options.add_argument("--height=1080")
-
-            # ✅ Isolated temporary profile directory
-            base_tmp = "/var/tmp/dnsrazzle-profiles"
-            os.makedirs(base_tmp, exist_ok=True)
-            temp_profile = tempfile.mkdtemp(dir=base_tmp, prefix="firefox-profile-")
-
-            profile = FirefoxProfile(temp_profile)
-            profile.set_preference("layers.acceleration.disabled", True)
-
-            # ✅ Assign FirefoxProfile to options correctly
-            options.profile = profile
-
-            print_debug(f"Creating Firefox temp profile at: {temp_profile}")
-
-            driver = webdriver.Firefox(
-                service=FirefoxService(),
-                options=options
+        if browser_name == "chromium":
+            browser = await pw.chromium.launch(
+                headless=True,
+                args=[
+                    "--no-sandbox",
+                    "--disable-dev-shm-usage",
+                    "--disable-extensions",
+                ],
             )
-            driver.temp_profile_dir = temp_profile
-            print_debug(f"Firefox started successfully using: {temp_profile}")
-
-            return driver
-
-
+        elif browser_name == "firefox":
+            browser = await pw.firefox.launch(headless=True)
         else:
             print_error(f"Unsupported browser type: {browser_name}")
             return None
 
-    except WebDriverException as E:
-        print_error(f"Failed to start {browser_name} driver: {E}")
-        # Cleanup on Chrome failure
-        if 'temp_profile' in locals():
-            shutil.rmtree(temp_profile, ignore_errors=True)
+        print_debug(f"Playwright {browser_name} browser started successfully")
+        return browser
+
+    except Exception as e:
+        print_error(f"Failed to start Playwright {browser_name} browser: {e}")
         return None
 
-def screenshot_domain(driver, domain, out_dir, retries=1):
+
+async def screenshot_domain(browser: Browser, domain: str, out_dir: str, retries: int = 1) -> bool:
+    """Take a screenshot of a domain using a fresh browser context.
+
+    Each screenshot gets its own context (isolated cookies, cache, storage).
+    The context is closed after the screenshot regardless of success/failure.
+
+    Args:
+        browser: Playwright Browser instance (shared across screenshots).
+        domain: Domain name to screenshot.
+        out_dir: Directory to save the screenshot PNG.
+        retries: Number of retry attempts on timeout/navigation errors.
+
+    Returns:
+        True if screenshot was saved, False otherwise.
     """
-    Function to take screenshot of supplied domain.
-    It retries if a known error occurs (e.g. timeout or renderer issues).
-    """
-    if not driver:
-        print_error("WebDriver not initialized — skipping screenshot.")
+    if not browser:
+        print_error("Browser not initialized — skipping screenshot.")
         return False
 
-    url = "http://" + str(domain).strip('[]')
+    url = "http://" + str(domain).strip("[]")
     ss_path = os.path.join(out_dir, f"{domain}.png")
-    
-    retryable_keywords = [
-        "timeout", 
-        "renderer", 
-        "net::err_address_unreachable", 
-        "net::err_"
-    ]
+    os.makedirs(out_dir, exist_ok=True)
+
+    user_agent = random.choice(_USER_AGENTS)
 
     for attempt in range(retries + 1):
+        context = None
         try:
-            driver.set_page_load_timeout(15)
-            driver.get(url)
-            driver.get_screenshot_as_file(ss_path)
+            context = await browser.new_context(
+                user_agent=user_agent,
+                viewport={"width": 1920, "height": 1080},
+            )
+            page = await context.new_page()
+            page.set_default_navigation_timeout(10_000)  # 10 seconds
+
+            await page.goto(url, wait_until="load")
+            await page.screenshot(path=ss_path, full_page=False)
             return True
 
-        except WebDriverException as exception:
-            # 🔧 Use .msg for cleaner error messages, fallback to str()
-            message = getattr(exception, "msg", str(exception)).lower()
-
-            if any(keyword in message for keyword in retryable_keywords):
-                print_error(f"Chrome error while loading {url}: {message}. Retrying... (attempt {attempt + 1} of {retries + 1})")
-                if attempt < retries:
-                    time.sleep(1)
-                    continue
-                else:
-                    print_debug(f"Skipping {domain} after {retries + 1} failed attempts: {message}")
-                    return False
+        except PlaywrightTimeout:
+            print_error(
+                f"Timeout loading {url} (attempt {attempt + 1} of {retries + 1})"
+            )
+            if attempt < retries:
+                continue
             else:
-                print_error(f"Unable to screenshot {domain}. {message}")
+                print_debug(f"Skipping {domain} after {retries + 1} failed attempts")
                 return False
+
+        except Exception as e:
+            message = str(e).lower()
+            retryable = any(kw in message for kw in [
+                "timeout", "net::err_", "renderer", "navigation failed",
+            ])
+            if retryable and attempt < retries:
+                print_error(
+                    f"Retryable error for {url}: {e} (attempt {attempt + 1} of {retries + 1})"
+                )
+                continue
+            else:
+                print_error(f"Unable to screenshot {domain}: {e}")
+                return False
+
+        finally:
+            if context:
+                try:
+                    await context.close()
+                except Exception:
+                    pass
 
     return False
 
 
-def quit_webdriver(driver):
-    if driver is None:
+async def close_browser(browser: Browser | None) -> None:
+    """Close a Playwright browser instance."""
+    if browser is None:
         return
     try:
-        driver.quit()
-        if hasattr(driver, "temp_profile_dir"):
-            shutil.rmtree(driver.temp_profile_dir, ignore_errors=True)
+        await browser.close()
     except Exception as e:
-        print_error(f"Error while quitting WebDriver: {e}")
+        print_error(f"Error while closing browser: {e}")
+
+
+async def cleanup_playwright() -> None:
+    """Stop the module-level Playwright instance. Call at end of async session."""
+    global _playwright_instance
+    if _playwright_instance is not None:
+        try:
+            await _playwright_instance.stop()
+        except Exception:
+            pass
+        _playwright_instance = None

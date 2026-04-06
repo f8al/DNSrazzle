@@ -1,0 +1,19 @@
+# DNSRazzle Email Notification Configuration
+# Copy this file to mail_config.conf and fill in your SMTP settings.
+# Email reports are sent when using the -e flag.
+
+[SMTP]
+host = smtp.example.com
+port = 587
+tls = true
+
+[AUTH]
+# Leave blank if your SMTP server does not require authentication
+username =
+password =
+
+[MAIL]
+from = noreply@example.com
+# Comma-separated list of recipients
+recipients = admin@example.com
+subject = DNSRazzle Scan Report

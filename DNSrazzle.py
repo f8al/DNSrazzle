@@ -30,38 +30,38 @@ Copyright 2025 SecurityShrimp LTD, LLC
 '''
 
 
-__version__ = '1.6.0'
+__version__ = '2.0.0'
 __author__ = 'SecurityShrimp'
 __twitter__ = '@securityshrimp'
 __email__ = 'securityshrimp@proton.me'
 
 
 import argparse
+import asyncio
 import csv
 import os
 import signal
 import sys
 import time
 from progress.bar import Bar
-from dnsrazzle import BrowserUtil, IOUtil
+from dnsrazzle import IOUtil
 from dnsrazzle.DnsRazzle import DnsRazzle
 from dnsrazzle.IOUtil import print_error, print_good, print_status
 
 def main():
-    os.environ['WDM_LOG_LEVEL'] = '0'
     IOUtil.banner()
     parser = argparse.ArgumentParser()
     parser.add_argument('-b', '--blocklist', action="store_true", dest='blocklist', default=False,
                             help="Generate a blocklist of domains/IP addresses of suspected impersonation domains.")
     parser.add_argument('-B', '--blocklist_pct', type=float, dest='blocklist_pct', metavar='PCT', default=0.9,
                         help="Threshold for what gets put on the blocklist. Default is 0.9.")
-    parser.add_argument('--browser', type=str, dest='browser', default='chrome',
-                        help='Specify browser to use with WebDriver. Default is "chrome", "firefox" is also supported.')
+    parser.add_argument('--browser', type=str, dest='browser', default='chromium',
+                        help='Specify browser to use with Playwright. Default is "chromium", "firefox" is also supported.')
     parser.add_argument('-d', '--domain', type=str, dest='domain', help='Target domain or domain list.')
     parser.add_argument('-D', '--dictionary', type=str, dest='dictionary', metavar='FILE', default=[],
                         help='Path to dictionary file to pass to DNSTwist to aid in domain permutation generation.')
     parser.add_argument('-e', '--email', dest='email', action='store_true', default=False,
-                        help='Tell DNSRazzle to email the reports when completed.  Requires configuration in etc/mail_config.conf.')
+                        help='Send email report when scan completes. Requires configuration in etc/mail_config.conf.')
     parser.add_argument('-f', '--file', type=str, dest='file', metavar='FILE', default=None,
                         help='Provide a file containing a list of domains to run DNSrazzle on.')
     parser.add_argument('-g', '--generate', dest='generate', action='store_true', default=False,
@@ -95,11 +95,14 @@ def main():
     recon = arguments.recon
     email = arguments.email
     no_screenshot = arguments.no_screenshot
-    driver = None
+
+    # Map legacy browser name
+    browser_name = arguments.browser
+    if browser_name == 'chrome':
+        browser_name = 'chromium'
 
     def _exit(code):
         IOUtil.reset_tty()
-        BrowserUtil.quit_webdriver(driver)
         sys.exit(code)
 
     def signal_handler(signal, frame):
@@ -112,7 +115,7 @@ def main():
 
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
-    
+
     if debug:
         os.environ['WDM_LOG_LEVEL'] = '4'
     # First, you need to put the domains to be scanned into the "domains_to_scan" variable
@@ -156,8 +159,8 @@ def main():
     bar = Bar(f'Generating possible domain name impersonations…', max=len(domain_raw_list))
     for entry in domain_raw_list:
         razzle = DnsRazzle(domain=str(entry), out_dir=out_dir, tld=tld, dictionary=dictionary, file=arguments.file,
-                useragent=useragent, debug=debug, threads=threads, nmap=nmap, recon=recon, driver=driver,
-                nameserver=nameserver)
+                useragent=useragent, debug=debug, threads=threads, nmap=nmap, recon=recon,
+                nameserver=nameserver, browser_name=browser_name)
         razzles.append(razzle)
         razzle.generate_fuzzed_domains()
         bar.next()
@@ -204,29 +207,32 @@ def main():
 
     if not no_screenshot:
         print_status("Collecting and analyzing web screenshots")
-        if driver is None:
-            driver = BrowserUtil.get_webdriver(arguments.browser)
 
         with open(file=out_dir + "/domain_similarity.csv", mode="w") as f:
             f.write("original_domain,discovered_domain,similarity_score\n")
 
-        for razzle in razzles:
-            razzle.driver = driver
-            razzle.check_domains(check_domain_callback)
-        BrowserUtil.quit_webdriver(driver)
+        async def _run_screenshots():
+            for razzle in razzles:
+                await razzle.check_domains(check_domain_callback)
+
+        asyncio.run(_run_screenshots())
         print_good(f"Visual analysis saved to {out_dir}/domain_similarity.csv")
 
     if arguments.blocklist:
         print_status("Compiling blocklist")
         for razzle in razzles:
             for domain in razzle.domains:
-                if domain['ssim-score'] is not None and domain['ssim-score'] >= arguments.blocklist_pct:
+                if domain.get('ssim-score') is not None and domain['ssim-score'] >= arguments.blocklist_pct:
                     with open(out_dir + "/blocklist.csv", "a") as f:
                         for field in ['dns-a', 'dns-aaaa', 'dns-ns', 'dns-mx']:
                             if field in domain:
                                 for ip in domain[field]:
-                                    f.write("%s,%s" % (ip, domain['domain-name']))
+                                    f.write("%s,%s\n" % (ip, domain['domain-name']))
         print_good(f"Blocklist saved to {out_dir}/blocklist.csv")
+
+    if email:
+        from dnsrazzle.MailUtil import send_report
+        send_report(out_dir=out_dir, domains_scanned=domain_raw_list)
 
 def check_domain_callback(razzle: DnsRazzle, domain_entry):
     siteA = razzle.domain

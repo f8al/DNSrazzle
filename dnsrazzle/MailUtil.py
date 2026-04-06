@@ -30,108 +30,162 @@ Copyright 2025 SecurityShrimp LTD, LLC
 '''
 
 
-__version__ = '1.6.0'
+__version__ = '2.0.0'
 __author__ = 'SecurityShrimp'
 __twitter__ = '@securityshrimp'
 __email__ = 'securityshrimp@proton.me'
 
+import configparser
 import os
-import sys
-import ast
-from datetime import datetime
-import configParser
-
-
 import smtplib
-import mimetypes
-from email.mime.multipart import MIMEMultipart
-from email import encoders
-from email.message import Message
+from datetime import datetime
 from email.mime.base import MIMEBase
 from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from email import encoders
+
+from .IOUtil import print_error, print_good, print_status
 
 
-pwd = os.getcwd()
+def load_config(config_path=None):
+    """Load SMTP configuration from an INI file.
 
-#load configuration file
-parser = configparser.ConfigParser()
-config = pwd + '/etc/mail_config.conf'
-parser.read( config ) #change this to speedtest.conf once configured
+    Args:
+        config_path: Path to the config file. Defaults to etc/mail_config.conf
+                     relative to the working directory.
 
+    Returns:
+        dict with SMTP settings, or None if config is missing/invalid.
+    """
+    if config_path is None:
+        config_path = os.path.join(os.getcwd(), 'etc', 'mail_config.conf')
 
-mail_host = parser['CCONNECTION_INFO']['smtp_host']
-mail_port = parser['CCONNECTION_INFO']['smtp_port']
-send_user = parser['MAIL_OPTIONS']['user']
-send_pass = parser['MAIL_OPTIONS']['pword']
-mail_recipients = parser['MAIL_OPTIONS']['send_to_recipients']
-mail_subject = parser['MAIL_OPTIONS']['subject']
+    if not os.path.exists(config_path):
+        print_error(f"Mail config not found: {config_path}")
+        print_error("Copy etc/mail_config.conf.sample to etc/mail_config.conf and fill in your SMTP settings.")
+        return None
 
-class sendmail:
-	def __init__(self,subject,recipients):
-		self.subject = subject
-		self.recipients = recipients
-		self.htmlbody = ''
-		self.sender = send_user
-		self.senderpass = send_pass
-		self.attachments = []
+    parser = configparser.ConfigParser()
+    parser.read(config_path)
 
-	def send(self):
-		msg = MIMEMultipart('alternative')
-		msg['From']=self.sender
-		msg['Subject']=self.subject
-		msg['To'] = ", ".join(self.recipients) # to must be array of the form ['mailsender135@gmail.com']
-		msg.preamble = "Here is the output for the most recent run of DNSRazzle"
-		#check if there are attachments if yes, add them
-		if self.attachments:
-			self.attach(msg)
-		#add html body after attachments
-		msg.attach(MIMEText(self.htmlbody, 'html'))
-		#send
-		s = smtplib.SMTP(mail_host + ':' + mail_port)
-		s.starttls()
-		s.login(self.sender,self.senderpass)
-		s.sendmail(self.sender, self.recipients, msg.as_string())
-    		if debug == True:
-     			 print(msg)
-		s.quit()
+    try:
+        config = {
+            'host': parser.get('SMTP', 'host'),
+            'port': parser.getint('SMTP', 'port', fallback=587),
+            'tls': parser.getboolean('SMTP', 'tls', fallback=True),
+            'username': parser.get('AUTH', 'username', fallback=''),
+            'password': parser.get('AUTH', 'password', fallback=''),
+            'from_email': parser.get('MAIL', 'from'),
+            'recipients': [r.strip() for r in parser.get('MAIL', 'recipients').split(',') if r.strip()],
+            'subject': parser.get('MAIL', 'subject', fallback='DNSRazzle Scan Report'),
+        }
+    except (configparser.NoSectionError, configparser.NoOptionError) as e:
+        print_error(f"Mail config error: {e}")
+        return None
 
-	def htmladd(self, html):
-		self.htmlbody = self.htmlbody+'<p></p>'+html
+    if not config['host']:
+        print_error("SMTP host is not configured in mail_config.conf")
+        return None
 
-	def attach(self,msg):
-		for f in self.attachments:
-			ctype, encoding = mimetypes.guess_type(f)
-			if ctype is None or encoding is not None:
-				ctype = "application/octet-stream"
-			maintype, subtype = ctype.split("/", 1)
-      
-			if maintype == "text":
-				fp = open(f)
-				# Note: we should handle calculating the charset
-				attachment = MIMEText(fp.read(), _subtype=subtype)
-				fp.close()
-			else:
-				fp = open(f, "rb")
-				attachment = MIMEBase(maintype, subtype)
-				attachment.set_payload(fp.read())
-				fp.close()
-				encoders.encode_base64(attachment)
-			attachment.add_header("Content-Disposition", "attachment", filename=f)
-			attachment.add_header('Content-ID', '<{}>'.format(f))
-			msg.attach(attachment)
+    if not config['recipients']:
+        print_error("No recipients configured in mail_config.conf")
+        return None
 
-	def addattach(self, files):
-		self.attachments = self.attachments + files
+    return config
 
 
+def send_email(config, subject, html_body, attachments=None):
+    """Send an email via SMTP.
+
+    Args:
+        config: dict from load_config().
+        subject: Email subject line.
+        html_body: HTML email body.
+        attachments: optional list of (filename, data_bytes, mime_type) tuples.
+
+    Returns:
+        True on success, False on failure.
+    """
+    msg = MIMEMultipart("mixed")
+    msg["From"] = config['from_email']
+    msg["To"] = ", ".join(config['recipients'])
+    msg["Subject"] = subject
+    msg.attach(MIMEText(html_body, "html"))
+
+    if attachments:
+        for filename, data, mime_type in attachments:
+            maintype, subtype = mime_type.split("/", 1) if "/" in mime_type else ("application", "octet-stream")
+            part = MIMEBase(maintype, subtype)
+            part.set_payload(data)
+            encoders.encode_base64(part)
+            part.add_header("Content-Disposition", "attachment", filename=filename)
+            msg.attach(part)
+
+    try:
+        if config['tls']:
+            server = smtplib.SMTP(config['host'], config['port'], timeout=10)
+            server.ehlo()
+            server.starttls()
+            server.ehlo()
+        else:
+            server = smtplib.SMTP(config['host'], config['port'], timeout=10)
+
+        if config['username'] and config['password']:
+            server.login(config['username'], config['password'])
+
+        server.sendmail(config['from_email'], config['recipients'], msg.as_string())
+        server.quit()
+        return True
+
+    except Exception as e:
+        print_error(f"Failed to send email: {e}")
+        return False
 
 
-def sendemail(out_dir,mail_recipients):
-	# subject and recipients
-	mymail = sendmail(mail_subject + datetime.now().strftime('%m/%d/%Y'),mail_recipients)
-	#start html body. Here we add a greeting.
-	mymail.htmladd('Good morning, find the daily summary below.')
-	#attach a file
-	mymail.addattach(out_dir/results.zip)
-	#send!
-	mymail.send()
+def send_report(out_dir, domains_scanned, config_path=None):
+    """Send a scan completion report email with CSV attachments.
+
+    Args:
+        out_dir: Output directory containing the CSV files.
+        domains_scanned: list of domain names that were scanned.
+        config_path: Optional path to mail_config.conf.
+    """
+    config = load_config(config_path)
+    if config is None:
+        return
+
+    domain_list = ', '.join(domains_scanned)
+    date_str = datetime.now().strftime('%m/%d/%Y %H:%M')
+    subject = f"{config['subject']} — {date_str}"
+
+    html_body = f"""
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 560px; margin: 0 auto; padding: 32px 24px;">
+        <h2 style="color: #22c55e; margin: 0 0 16px;">DNSRazzle Scan Completed</h2>
+        <p style="color: #e0e0e0; font-size: 15px; line-height: 1.6; margin: 0 0 8px;">
+            Scan completed for: <strong style="color: #fff;">{domain_list}</strong>
+        </p>
+        <p style="color: #e0e0e0; font-size: 15px; line-height: 1.6; margin: 0 0 8px;">
+            Results are attached as CSV files.
+        </p>
+        <p style="color: #888; font-size: 13px; margin: 16px 0 0;">
+            Generated by DNSRazzle v{__version__} on {date_str}
+        </p>
+    </div>
+    """
+
+    attachments = []
+    for csv_name in ['discovered-domains.csv', 'domain_similarity.csv']:
+        csv_path = os.path.join(out_dir, csv_name)
+        if os.path.exists(csv_path):
+            with open(csv_path, 'rb') as f:
+                attachments.append((csv_name, f.read(), 'text/csv'))
+
+    if not attachments:
+        print_error("No CSV files found to attach to email report")
+        return
+
+    print_status("Sending email report...")
+    if send_email(config, subject, html_body, attachments):
+        print_good(f"Email report sent to {', '.join(config['recipients'])}")
+    else:
+        print_error("Failed to send email report")

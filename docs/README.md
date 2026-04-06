@@ -13,8 +13,14 @@ A pure python tool for finding and comparing typo-squatting, bitsqatting, and ho
 
 DNSrazzle's DNS fuzzing is an automated workflow for discovering potentially malicious domains targeting your organisation. This tool works by using dnstwists permutation engine to generate a large list of permutations based on a domain name you provide, and then checking if any of those permutations are in use. Additionally, it generates screenshots of the original domain, and the discovered web pages, and compares them using computer vision to see if they are part of an ongoing phishing attack or brand impersonation, and much more!
 
+## Version 2.0.0 note
+- **Playwright replaces Selenium** for browser automation. After installing dependencies, run `playwright install chromium` (or `firefox`) to set up the browser.
+- **New `url-encoded-slash` (2f) permutation** — detects attackers registering `2fdomain.tld` to abuse URL-encoded slash (`%2F`) in phishing links.
+- **Email notifications now functional** — use the `-e` flag to send scan reports via email. Copy `etc/mail_config.conf.sample` to `etc/mail_config.conf` and configure your SMTP settings.
+- The `--browser` flag now accepts `chromium` (default) or `firefox`. The legacy value `chrome` is automatically mapped to `chromium`.
+- This is the final feature release of DNSRazzle. Future releases will be bugfixes only.
+
 ## Version 1.6.x note
-- The selenium webdriver manager package has been deprecated and this project now uses Seleniums own manager, "Selenium Manager"
 - DNSRazzle is now using RDAP instead of WHOIS for returning the registration information after changes made by Verisign regarding rate limiting of their WHOIS servers.  This will be functionally transparent in the output
 
 ## Version 1.5.x+ note
@@ -29,6 +35,7 @@ python3 -m venv .
 source bin/activate
 pip3 install --upgrade pip
 pip3 install -r requirements.txt
+playwright install chromium
 ```
 
 
@@ -52,7 +59,7 @@ DNSRazzle supports single domain names, a comma seperated list of domain names, 
 ## Optional arguments
 
     -h, --help                                        | Show help message and exit
-    --browser                                         | specify what browser for seleium to use. Options: '(chrome|firefox)'
+    --browser                                         | specify what browser for Playwright to use. Options: '(chromium|firefox)'
   
     -D FILE, --dictionary FILE                        | Path to dictionary file to pass to DNSTwist to aid in domain permutation generation.
 
