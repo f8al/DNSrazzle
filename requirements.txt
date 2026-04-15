@@ -13,6 +13,6 @@ opencv-python-headless
 numpy
 python-nmap
 argparse
-dnstwist==20201228
+dnstwist==20250130
 progress
 reconDNS>=0.0.3
