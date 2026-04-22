@@ -3,7 +3,7 @@ dnspython>=1.14.0
 requests>=2.20.0
 ppdeep>=20200505
 tld>=0.9.1
-certifi>=2020.06.20
+certifi>=2026.4.22
 scikit-image>=0.17.0
 netaddr
 lxml
