@@ -1,5 +1,5 @@
 wheel
-dnspython>=1.14.0
+dnspython>=2.7.0
 requests>=2.20.0
 ppdeep>=20200505
 tld>=0.9.1
