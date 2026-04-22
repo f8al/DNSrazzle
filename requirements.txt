@@ -1,7 +1,7 @@
 wheel
 dnspython>=1.14.0
 requests>=2.20.0
-ppdeep>=20200505
+ppdeep>=20260221
 tld>=0.9.1
 certifi>=2020.06.20
 scikit-image>=0.17.0
