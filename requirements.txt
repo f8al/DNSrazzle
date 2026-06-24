@@ -4,7 +4,7 @@ requests>=2.20.0
 ppdeep>=20200505
 tld>=0.9.1
 certifi>=2020.06.20
-scikit-image>=0.17.0
+scikit-image>=0.25.2
 netaddr
 lxml
 playwright>=1.40.0
